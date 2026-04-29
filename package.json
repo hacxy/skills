@@ -1,0 +1,34 @@
+{
+  "name": "skills",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm run -w packages/core build && npm run -w packages/cli build && npm run -w apps/web build",
+    "dev:web": "npm run -w apps/web dev",
+    "dev:cli": "npm run -w packages/cli dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hacxy/skills.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/hacxy/skills/issues"
+  },
+  "homepage": "https://github.com/hacxy/skills#readme",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
