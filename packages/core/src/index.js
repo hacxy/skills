@@ -2,7 +2,7 @@ import fg from "fast-glob";
 import { dirname, relative, resolve } from "node:path";
 import { readFile } from "node:fs/promises";
 import matter from "gray-matter";
-const SKILL_PATTERN = "*/SKILL.md";
+const SKILL_PATTERNS = ["skills/*/SKILL.md", "*/SKILL.md"];
 function normalizeSkillName(name) {
     return name.trim().toLowerCase();
 }
@@ -23,7 +23,7 @@ function parseMarkdown(filePath, raw, rootDir) {
     };
 }
 export async function discoverSkillFiles(rootDir) {
-    return fg(SKILL_PATTERN, {
+    return fg(SKILL_PATTERNS, {
         cwd: rootDir,
         absolute: true,
         onlyFiles: true,
