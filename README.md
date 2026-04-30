@@ -6,48 +6,63 @@ Skills are stored in this repo and synced to a central registry at [hacxy/skills
 
 [中文](./README.zh.md)
 
-## Installation
+## Usage
+
+No installation required — run directly with npx:
+
+```bash
+npx @hacxy/skills install commit
+```
+
+Or install globally for repeated use:
 
 ```bash
 npm install -g @hacxy/skills
+skills install commit
 ```
 
-## CLI Usage
+## CLI Commands
 
 ### Browse
 
 ```bash
 # list all skills
-skills list
+npx @hacxy/skills list
 
 # search by keyword
-skills search commit
+npx @hacxy/skills search commit
 
 # view a skill's content
-skills show commit
+npx @hacxy/skills show commit
 ```
 
 ### Install
 
 ```bash
 # install to Claude Code (default)
-skills install commit
+npx @hacxy/skills install commit
 
 # install to Cursor or Codex
-skills install commit --platform cursor
-skills install commit --platform codex
+npx @hacxy/skills install commit --platform cursor
+npx @hacxy/skills install commit --platform codex
+
+# install to a custom directory
+npx @hacxy/skills install commit --dir ./path/to/dir
+
+# install to the current directory
+npx @hacxy/skills install commit --dir .
 
 # install multiple skills at once
-skills install commit review find-docs
+npx @hacxy/skills install commit review find-docs
 
 # install all skills from the registry
-skills install
+npx @hacxy/skills install
 
 # install to all platforms at once
-skills install --all-platforms
+npx @hacxy/skills install --all-platforms
 
 # preview install paths without writing
-skills install commit --dry-run
+npx @hacxy/skills install commit --dry-run
 ```
 
 Supported platforms: `claude-code`, `cursor`, `codex`
@@ -55,9 +70,9 @@ Supported platforms: `claude-code`, `cursor`, `codex`
 ### Check install paths
 
 ```bash
-skills where claude-code
-skills where cursor
-skills where codex
+npx @hacxy/skills where claude-code
+npx @hacxy/skills where cursor
+npx @hacxy/skills where codex
 ```
 
 ## Owner Commands
@@ -65,9 +80,6 @@ skills where codex
 These commands require owner authentication and are only useful if you've forked this repo to manage your own registry.
 
 ```bash
-# initialize owner token
-skills auth init --token your-secret-token
-
 # check auth status
 skills auth status
 
@@ -79,12 +91,11 @@ skills upload --source ./my-skill --dry-run      # preview only
 
 Upload writes the skill to the local `skills/` directory and pushes it to GitHub via the Contents API — immediately visible to all users.
 
-Required environment variables for upload:
+Required environment variable for upload:
 
 | Variable | Description |
 |---|---|
-| `SKILLS_OWNER_TOKEN` | Owner token for upload auth |
-| `GITHUB_TOKEN` / `GH_TOKEN` | GitHub token with repo write access |
+| `GITHUB_TOKEN` / `GH_TOKEN` | GitHub token with repo write access (`contents: write`) |
 
 ## Development
 

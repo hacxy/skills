@@ -6,48 +6,63 @@ Skills 存储在本仓库并同步到中央 registry：[hacxy/skills](https://gi
 
 [English](./README.md)
 
-## 安装
+## 使用方式
+
+无需安装，直接通过 npx 运行：
+
+```bash
+npx @hacxy/skills install commit
+```
+
+或者全局安装后使用：
 
 ```bash
 npm install -g @hacxy/skills
+skills install commit
 ```
 
-## CLI 用法
+## CLI 命令
 
 ### 浏览
 
 ```bash
 # 列出所有技能
-skills list
+npx @hacxy/skills list
 
 # 按关键字搜索
-skills search commit
+npx @hacxy/skills search commit
 
 # 查看技能详情
-skills show commit
+npx @hacxy/skills show commit
 ```
 
 ### 安装
 
 ```bash
 # 安装到 Claude Code（默认）
-skills install commit
+npx @hacxy/skills install commit
 
 # 安装到 Cursor 或 Codex
-skills install commit --platform cursor
-skills install commit --platform codex
+npx @hacxy/skills install commit --platform cursor
+npx @hacxy/skills install commit --platform codex
+
+# 安装到指定目录
+npx @hacxy/skills install commit --dir ./path/to/dir
+
+# 安装到当前目录
+npx @hacxy/skills install commit --dir .
 
 # 同时安装多个技能
-skills install commit review find-docs
+npx @hacxy/skills install commit review find-docs
 
 # 安装 registry 中的全部技能
-skills install
+npx @hacxy/skills install
 
 # 同时安装到所有平台
-skills install --all-platforms
+npx @hacxy/skills install --all-platforms
 
 # 预览安装路径，不实际写入
-skills install commit --dry-run
+npx @hacxy/skills install commit --dry-run
 ```
 
 支持的平台：`claude-code`、`cursor`、`codex`
@@ -55,9 +70,9 @@ skills install commit --dry-run
 ### 查看安装路径
 
 ```bash
-skills where claude-code
-skills where cursor
-skills where codex
+npx @hacxy/skills where claude-code
+npx @hacxy/skills where cursor
+npx @hacxy/skills where codex
 ```
 
 ## 所有者命令
@@ -65,9 +80,6 @@ skills where codex
 这些命令需要所有者认证，仅在你 fork 本仓库管理自己的 registry 时有用。
 
 ```bash
-# 初始化 owner token
-skills auth init --token your-secret-token
-
 # 查看认证状态
 skills auth status
 
@@ -83,8 +95,7 @@ skills upload --source ./my-skill --dry-run      # 仅预览
 
 | 变量 | 说明 |
 |---|---|
-| `SKILLS_OWNER_TOKEN` | 上传认证用 owner token |
-| `GITHUB_TOKEN` / `GH_TOKEN` | 具备仓库写权限的 GitHub token |
+| `GITHUB_TOKEN` / `GH_TOKEN` | 具备仓库写权限的 GitHub token（`contents: write`） |
 
 ## 本地开发
 
