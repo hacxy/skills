@@ -11,7 +11,15 @@ interface Props {
   onLogoClick: () => void;
 }
 
-function TypewriterText({ text, speed = 18, delay = 0 }: { text: string; speed?: number; delay?: number }) {
+function TypewriterText({
+  text,
+  speed = 18,
+  delay = 0,
+}: {
+  text: string;
+  speed?: number;
+  delay?: number;
+}) {
   const [displayed, setDisplayed] = useState("");
   const [started, setStarted] = useState(delay === 0);
   const [done, setDone] = useState(false);
@@ -58,7 +66,12 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } },
 };
 
-export function HomePage({ onBrowse, theme, onToggleTheme, onLogoClick }: Props) {
+export function HomePage({
+  onBrowse,
+  theme,
+  onToggleTheme,
+  onLogoClick,
+}: Props) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
@@ -118,15 +131,16 @@ export function HomePage({ onBrowse, theme, onToggleTheme, onLogoClick }: Props)
           </motion.h1>
 
           <motion.p variants={itemVariants} className="hero-desc">
-            <TypewriterText
-              text={t("hero.desc")}
-              speed={20}
-              delay={700}
-            />
+            <TypewriterText text={t("hero.desc")} speed={50} delay={700} />
           </motion.p>
 
           <motion.div variants={itemVariants} className="install-cmd">
-            <Icon icon="lucide:terminal" width="14" height="14" className="cmd-icon" />
+            <Icon
+              icon="lucide:terminal"
+              width="14"
+              height="14"
+              className="cmd-icon"
+            />
             <code>npx @hacxy/skills</code>
             <button className="cmd-copy" onClick={() => void copyInstall()}>
               <Icon
@@ -168,7 +182,11 @@ export function HomePage({ onBrowse, theme, onToggleTheme, onLogoClick }: Props)
           viewport={{ once: true, margin: "-60px" }}
         >
           {features.map((f) => (
-            <motion.div key={f.icon} className="feature-card" variants={itemVariants}>
+            <motion.div
+              key={f.icon}
+              className="feature-card"
+              variants={itemVariants}
+            >
               <div className="feature-icon">
                 <Icon icon={f.icon} width="20" height="20" />
               </div>
@@ -208,7 +226,16 @@ skills install commit`}</pre>
 
       {/* Footer */}
       <footer className="home-footer">
-        <p>MIT Licensed | Copyright © 2023-Present <a href="https://github.com/hacxy" target="_blank" rel="noopener noreferrer">Hacxy</a></p>
+        <p>
+          MIT Licensed | Copyright © 2023-Present{" "}
+          <a
+            href="https://github.com/hacxy"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Hacxy
+          </a>
+        </p>
       </footer>
     </div>
   );
