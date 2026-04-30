@@ -76,8 +76,25 @@ export default defineConfig({
           }
 
           if (req.url.startsWith("/api/skills/") && req.method === "GET") {
-            const name = decodeURIComponent(req.url.replace("/api/skills/", ""));
-            const doc = await loadSkillByName(skillsRoot, name);
+            const rest = decodeURIComponent(req.url.replace("/api/skills/", ""));
+            // /api/skills/:name/files → return file list
+            if (rest.endsWith("/files")) {
+              const name = rest.slice(0, -"/files".length);
+              const index = await buildSkillIndex(skillsRoot);
+              const skill = index.find((s) => s.name === name);
+              if (!skill) {
+                res.statusCode = 404;
+                res.end(JSON.stringify({ message: "not found" }));
+                return;
+              }
+              const skillDir = resolve(skillsRoot, skill.directory);
+              const files = await listSkillFiles(skillDir, skillDir);
+              res.setHeader("content-type", "application/json");
+              res.end(JSON.stringify(files));
+              return;
+            }
+            // /api/skills/:name → return skill doc
+            const doc = await loadSkillByName(skillsRoot, rest);
             if (!doc) {
               res.statusCode = 404;
               res.end(JSON.stringify({ message: "not found" }));

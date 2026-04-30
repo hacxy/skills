@@ -7,6 +7,35 @@ import { HomePage } from "./HomePage";
 import { TerminalAnimation } from "./TerminalAnimation";
 import { Navbar } from "./Navbar";
 
+const BLOCK_EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
+
+const blockReveal = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.28, ease: BLOCK_EASE } },
+};
+
+function AnimatedMarkdown({ html, animKey }: { html: string; animKey: string }) {
+  const blocks = useMemo(() => {
+    const el = document.createElement("div");
+    el.innerHTML = html;
+    return Array.from(el.children).map((c) => c.outerHTML);
+  }, [html]);
+
+  return (
+    <motion.article
+      key={animKey}
+      className="markdown"
+      variants={{ visible: { transition: { staggerChildren: 0.055 } } }}
+      initial="hidden"
+      animate="visible"
+    >
+      {blocks.map((block, i) => (
+        <motion.div key={i} variants={blockReveal} dangerouslySetInnerHTML={{ __html: block }} />
+      ))}
+    </motion.article>
+  );
+}
+
 const RAW_BASE = "https://raw.githubusercontent.com/hacxy/skills/main";
 
 function parseFrontmatter(text: string): {
@@ -130,6 +159,7 @@ export function App() {
   const [selectedFile, setSelectedFile] = useState("SKILL.md");
   const [viewContent, setViewContent] = useState("");
   const [isLoadingFile, setIsLoadingFile] = useState(false);
+  const [skillFiles, setSkillFiles] = useState<string[]>(["SKILL.md"]);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -183,7 +213,7 @@ export function App() {
     try {
       const url = import.meta.env.DEV
         ? "/api/skills"
-        : `${RAW_BASE}/skills-registry.json`;
+        : `${RAW_BASE}/skills-registry.json?t=${Date.now()}`;
       const res = await fetch(url);
       const data = (await res.json()) as {
         name: string;
@@ -228,7 +258,27 @@ export function App() {
     setIsLoadingDoc(true);
     setSelectedDoc(null);
     setSelectedFile("SKILL.md");
+    setSkillFiles(["SKILL.md"]);
     setActiveTool(0);
+
+    // Fetch file list directly so it's never blocked by registry timing
+    const filesUrl = import.meta.env.DEV
+      ? `/api/skills/${encodeURIComponent(selectedName)}/files`
+      : `${RAW_BASE}/skills-registry.json?t=${Date.now()}`;
+    void fetch(filesUrl)
+      .then((r) => r.json())
+      .then((data: unknown) => {
+        if (import.meta.env.DEV) {
+          if (Array.isArray(data)) setSkillFiles(data as string[]);
+        } else {
+          const entry = (data as { name: string; files?: string[] }[]).find(
+            (s) => s.name === selectedName,
+          );
+          if (entry?.files) setSkillFiles(entry.files);
+        }
+      })
+      .catch(() => {/* keep default */});
+
     void fetch(
       `${RAW_BASE}/skills/${encodeURIComponent(selectedName)}/SKILL.md`,
     )
@@ -258,10 +308,6 @@ export function App() {
     );
   }, [query, skills]);
 
-  const currentFiles = useMemo(
-    () => skills.find((s) => s.name === selectedName)?.files ?? ["SKILL.md"],
-    [skills, selectedName],
-  );
 
   async function copyInstallCmd(cmd: string) {
     await navigator.clipboard.writeText(cmd);
@@ -511,7 +557,7 @@ export function App() {
                     })()}
 
                     <div className="content-area">
-                      {currentFiles.length > 0 && (
+                      {skillFiles.length > 0 && (
                         <div className="file-selector">
                           <Icon icon="lucide:files" width="13" height="13" />
                           <select
@@ -519,7 +565,7 @@ export function App() {
                             value={selectedFile}
                             onChange={(e) => void loadFile(e.target.value)}
                           >
-                            {currentFiles.map((f) => (
+                            {skillFiles.map((f) => (
                               <option key={f} value={f}>
                                 {f}
                               </option>
@@ -534,11 +580,9 @@ export function App() {
                           <div className="skeleton sk-block" />
                         </div>
                       ) : (
-                        <article
-                          className="markdown"
-                          dangerouslySetInnerHTML={{
-                            __html: marked.parse(viewContent) as string,
-                          }}
+                        <AnimatedMarkdown
+                          html={marked.parse(viewContent) as string}
+                          animKey={`${selectedDoc.name}::${selectedFile}`}
                         />
                       )}
                     </div>
