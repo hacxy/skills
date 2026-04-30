@@ -1,6 +1,6 @@
 {
   "name": "@hacxy/skills",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "CLI for managing and installing skills across Cursor, Claude Code, and Codex.",
   "main": "dist/index.js",
   "exports": {
@@ -43,7 +43,7 @@
     "gray-matter": "^4.0.3"
   },
   "devDependencies": {
-    "@hacxy/bump": "^0.3.2",
+    "@hacxy/bump": "^0.4.0",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^25.6.0",
     "tsx": "^4.21.0",
