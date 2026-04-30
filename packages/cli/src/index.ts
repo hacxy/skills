@@ -2,7 +2,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { basename, dirname, join, resolve } from "node:path";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 import fs from "fs-extra";
@@ -18,8 +18,9 @@ import { ensureOwnerAccess } from "./auth.js";
 import {
   fetchRegistryIndex,
   fetchSkillContent,
+  fetchSkillDirectory,
   getGithubToken,
-  pushSkillToRegistry,
+  pushSkillDirectory,
 } from "./registry.js";
 
 const _require = createRequire(import.meta.url);
@@ -58,15 +59,18 @@ async function installRegistrySkill(
   targetRoot: string,
   options: { force?: boolean; dryRun?: boolean },
 ): Promise<string> {
-  const content = await fetchSkillContent(skillName);
   if (options.dryRun) {
     return join(targetRoot, skillName);
   }
+  const files = await fetchSkillDirectory(skillName);
   const tmpBase = await mkdtemp(join(tmpdir(), `skill-${skillName}-`));
   try {
     const skillDir = join(tmpBase, skillName);
-    await fs.ensureDir(skillDir);
-    await writeFile(join(skillDir, "SKILL.md"), content, "utf8");
+    for (const file of files) {
+      const dest = join(skillDir, file.path);
+      await fs.ensureDir(dirname(dest));
+      await writeFile(dest, file.content, "utf8");
+    }
     return await installSkillDirectory(skillDir, targetRoot, options);
   } finally {
     await rm(tmpBase, { recursive: true, force: true });
@@ -245,7 +249,6 @@ async function run() {
     .command("upload")
     .description("上传技能到 registry（仅所有者）")
     .option("--source <path>", "技能目录或 SKILL.md 文件路径")
-    .option("--content-file <path>", "从文件读取内容上传")
     .option("--name <name>", "技能名称（无法推断时使用）")
     .option("--force", "冲突时覆盖", false)
     .option("--dry-run", "预览，不实际写入", false)
@@ -257,30 +260,17 @@ async function run() {
         return;
       }
 
-      let targetName = options.name as string | undefined;
-      let content = "";
+      if (!options.source) throw new Error("请提供 --source 技能目录路径");
 
-      if (options.contentFile) {
-        content = await readFile(cwdOr(options.contentFile), "utf8");
-      } else if (options.source) {
-        const sourcePath = cwdOr(options.source);
-        const stat = await fs.stat(sourcePath);
-        if (stat.isDirectory()) {
-          content = await readFile(join(sourcePath, "SKILL.md"), "utf8");
-          targetName = targetName || basename(sourcePath);
-        } else {
-          content = await readFile(sourcePath, "utf8");
-          targetName = targetName || basename(dirname(sourcePath));
-        }
-      } else {
-        throw new Error("请提供 --source 或 --content-file");
-      }
+      const sourcePath = cwdOr(options.source);
+      const stat = await fs.stat(sourcePath);
+      const sourceDir = stat.isDirectory() ? sourcePath : dirname(sourcePath);
+      const targetName: string = (options.name as string | undefined) || basename(sourceDir);
 
       if (!targetName) throw new Error("无法推断技能名称，请使用 --name 指定");
-      if (!content.includes("---")) throw new Error("内容缺少 frontmatter");
 
       if (options.dryRun) {
-        console.log(`[dry-run] upload -> skills/${targetName}/SKILL.md`);
+        console.log(`[dry-run] upload -> skills/${targetName}/ (${sourceDir})`);
         return;
       }
 
@@ -292,7 +282,7 @@ async function run() {
       }
 
       process.stdout.write(chalk.gray(`正在推送 ${targetName} 到 registry...`));
-      await pushSkillToRegistry(targetName, content, token);
+      await pushSkillDirectory(targetName, sourceDir, token, { force: options.force });
       console.log(chalk.green(" 完成"));
     });
 

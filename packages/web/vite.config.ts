@@ -1,9 +1,11 @@
 import { existsSync } from "node:fs";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { buildSkillIndex, loadSkillByName } from "../cli/src/core.js";
-import { getGithubToken, pushSkillToRegistry } from "../cli/src/registry.js";
+import { getGithubToken, pushSkillDirectory } from "../cli/src/registry.js";
 
 const projectRoot = resolve(process.env.SKILLS_ROOT || resolve(__dirname, "..", ".."));
 const skillsRoot = existsSync(join(projectRoot, "skills")) ? join(projectRoot, "skills") : projectRoot;
@@ -94,7 +96,13 @@ export default defineConfig({
               return;
             }
 
-            await pushSkillToRegistry(name, content, token);
+            const tmpBase = await mkdtemp(join(tmpdir(), `skill-upload-`));
+            try {
+              await writeFile(join(tmpBase, "SKILL.md"), content, "utf8");
+              await pushSkillDirectory(name, tmpBase, token, { force: true });
+            } finally {
+              await rm(tmpBase, { recursive: true, force: true });
+            }
             res.setHeader("content-type", "application/json");
             res.end(JSON.stringify({ ok: true, message: `上传成功: ${name}` }));
             return;
