@@ -2,7 +2,7 @@
 
 这是我个人的 skill 集合——带有强烈的个人主见，主要为我自己的工作流维护，同时对所有人开放使用。
 
-Skills 存储在本仓库并同步到中央 registry：[hacxy/skills](https://github.com/hacxy/skills)。通过 CLI 可将它们安装到 Claude Code、Cursor 或 Codex。
+Skills 存储在本仓库并同步到中央 registry：[hacxy/skills](https://github.com/hacxy/skills)。通过 CLI 可将它们安装到 Claude Code、Cursor、Codex 或 Trae。
 
 [English](./README.md)
 

@@ -2,7 +2,7 @@
 
 My personal skill collection for AI coding assistants — opinionated, maintained for my own workflow, and open for anyone to use.
 
-Skills are stored in this repo and synced to a central registry at [hacxy/skills](https://github.com/hacxy/skills). They can be installed into Claude Code, Cursor, or Codex via the CLI.
+Skills are stored in this repo and synced to a central registry at [hacxy/skills](https://github.com/hacxy/skills). They can be installed into Claude Code, Cursor, Codex, or Trae via the CLI.
 
 [中文](./README.zh.md)
 
