@@ -1,5 +1,5 @@
 import { readdir, readFile, writeFile } from "node:fs/promises";
-import { join, dirname } from "node:path";
+import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import matter from "gray-matter";
 
@@ -8,6 +8,20 @@ const rootDir = join(__dirname, "..");
 const skillsDir = join(rootDir, "skills");
 const outputPath = join(rootDir, "skills-registry.json");
 
+async function collectFiles(dir, base) {
+  const entries = await readdir(dir, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...(await collectFiles(fullPath, base)));
+    } else {
+      files.push(relative(base, fullPath).replace(/\\/g, "/"));
+    }
+  }
+  return files.sort();
+}
+
 const dirs = (await readdir(skillsDir, { withFileTypes: true }))
   .filter((d) => d.isDirectory())
   .map((d) => d.name)
@@ -15,13 +29,15 @@ const dirs = (await readdir(skillsDir, { withFileTypes: true }))
 
 const registry = [];
 for (const dir of dirs) {
-  const skillPath = join(skillsDir, dir, "SKILL.md");
+  const skillDir = join(skillsDir, dir);
+  const skillPath = join(skillDir, "SKILL.md");
   try {
     const raw = await readFile(skillPath, "utf8");
     const parsed = matter(raw);
     const name = (parsed.data.name ?? dir).toString().trim();
-    const description = (parsed.data.description ?? "").toString().trim();
-    registry.push({ name, description });
+    const description = (parsed.data.description ?? "").toString().trim().replace(/\s*\n\s*/g, " ");
+    const files = await collectFiles(skillDir, skillDir);
+    registry.push({ name, description, files });
   } catch {
     // skip dirs without SKILL.md
   }
