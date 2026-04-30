@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { defineConfig } from "vite";
@@ -85,6 +85,33 @@ export default defineConfig({
             }
             res.setHeader("content-type", "application/json");
             res.end(JSON.stringify(doc));
+            return;
+          }
+
+          if (req.url.startsWith("/api/file/") && req.method === "GET") {
+            const parts = decodeURIComponent(req.url.replace("/api/file/", "")).split("/");
+            const skillName = parts[0];
+            const filePath = parts.slice(1).join("/");
+            if (!skillName || !filePath) {
+              res.statusCode = 400;
+              res.end("bad request");
+              return;
+            }
+            const skillDir = resolve(skillsRoot, skillName);
+            const target = resolve(skillDir, filePath);
+            if (!target.startsWith(skillDir)) {
+              res.statusCode = 403;
+              res.end("forbidden");
+              return;
+            }
+            try {
+              const content = await readFile(target, "utf8");
+              res.setHeader("content-type", "text/plain; charset=utf-8");
+              res.end(content);
+            } catch {
+              res.statusCode = 404;
+              res.end("not found");
+            }
             return;
           }
 
