@@ -8,6 +8,7 @@
     "build:registry": "node scripts/build-registry.mjs",
     "dev:web": "npm run -w packages/web dev",
     "dev:cli": "npm run -w packages/cli dev",
+    "dev:manager": "npm run -w packages/manager dev",
     "bump": "npm run -w packages/cli bump"
   },
   "repository": {
