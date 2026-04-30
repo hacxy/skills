@@ -1,6 +1,6 @@
 {
   "name": "@hacxy/skills",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "CLI for managing and installing skills across Cursor, Claude Code, and Codex.",
   "main": "dist/index.js",
   "exports": {
