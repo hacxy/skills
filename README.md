@@ -42,9 +42,10 @@ npx @hacxy/skills show commit
 # install to Claude Code (default)
 npx @hacxy/skills install commit
 
-# install to Cursor or Codex
+# install to Cursor, Codex or Trae
 npx @hacxy/skills install commit --platform cursor
 npx @hacxy/skills install commit --platform codex
+npx @hacxy/skills install commit --platform trae
 
 # install to a custom directory
 npx @hacxy/skills install commit --dir ./path/to/dir
@@ -65,7 +66,7 @@ npx @hacxy/skills install --all-platforms
 npx @hacxy/skills install commit --dry-run
 ```
 
-Supported platforms: `claude-code`, `cursor`, `codex`
+Supported platforms: `claude-code`, `cursor`, `codex`, `trae`
 
 ### Check install paths
 

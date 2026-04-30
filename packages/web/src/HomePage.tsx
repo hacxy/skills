@@ -52,7 +52,7 @@ const features = [
   {
     icon: "lucide:download",
     title: "一键安装",
-    desc: "通过 CLI 一条命令安装到 Claude Code、Cursor 或 Codex。",
+    desc: "通过 CLI 一条命令安装到 Claude Code、Cursor、Codex 或 Trae。",
   },
   {
     icon: "lucide:refresh-cw",
@@ -128,7 +128,7 @@ export function HomePage({ onBrowse, theme, onToggleTheme }: Props) {
 
           <motion.p variants={itemVariants} className="hero-desc">
             <TypewriterText
-              text="精选 AI 编程技能集，一条命令安装到 Claude Code、Cursor 或 Codex，立即增强你的工作流。"
+              text="精选 AI 编程技能集，一条命令安装到 Claude Code、Cursor、Codex 或 Trae，立即增强你的工作流。"
               speed={20}
               delay={700}
             />
@@ -204,9 +204,12 @@ npx @hacxy/skills list
 npx @hacxy/skills search commit
 npx @hacxy/skills install commit
 
+# 指定平台安装
+npx @hacxy/skills install commit --platform cursor
+npx @hacxy/skills install commit --platform trae
+
 # 或全局安装（长期使用更快）
 npm install -g @hacxy/skills
-skills list
 skills install commit`}</pre>
           </div>
         </motion.div>

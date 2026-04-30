@@ -42,9 +42,10 @@ npx @hacxy/skills show commit
 # 安装到 Claude Code（默认）
 npx @hacxy/skills install commit
 
-# 安装到 Cursor 或 Codex
+# 安装到 Cursor、Codex 或 Trae
 npx @hacxy/skills install commit --platform cursor
 npx @hacxy/skills install commit --platform codex
+npx @hacxy/skills install commit --platform trae
 
 # 安装到指定目录
 npx @hacxy/skills install commit --dir ./path/to/dir
@@ -65,7 +66,7 @@ npx @hacxy/skills install --all-platforms
 npx @hacxy/skills install commit --dry-run
 ```
 
-支持的平台：`claude-code`、`cursor`、`codex`
+支持的平台：`claude-code`、`cursor`、`codex`、`trae`
 
 ### 查看安装路径
 
@@ -89,12 +90,12 @@ skills upload --source ./my-skill --force        # 已存在时覆盖
 skills upload --source ./my-skill --dry-run      # 仅预览
 ```
 
-上传会将技能写入本地 `skills/` 目录，并通过 GitHub Contents API 推送到仓库——所有用户立即可见。
+上传会推送到远程仓库——所有用户立即可见。
 
 上传所需的环境变量：
 
-| 变量 | 说明 |
-|---|---|
+| 变量                        | 说明                                               |
+| --------------------------- | -------------------------------------------------- |
 | `GITHUB_TOKEN` / `GH_TOKEN` | 具备仓库写权限的 GitHub token（`contents: write`） |
 
 ## 本地开发

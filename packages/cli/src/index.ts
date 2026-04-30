@@ -137,7 +137,7 @@ async function run() {
     .command("install")
     .argument("[names...]", "技能名称（留空则安装全部）")
     .description("从 registry 下载并安装技能")
-    .option("--platform <platform>", "目标平台 cursor|claude-code|codex", "claude-code")
+    .option("--platform <platform>", "目标平台 cursor|claude-code|codex|trae", "claude-code")
     .option("--all-platforms", "安装到所有平台", false)
     .option("--dir <path>", "安装到指定目录（覆盖平台默认路径）")
     .option("--force", "覆盖已存在的技能", false)
@@ -215,7 +215,7 @@ async function run() {
 
   program
     .command("where")
-    .argument("<platform>", "cursor|claude-code|codex")
+    .argument("<platform>", "cursor|claude-code|codex|trae")
     .description("显示平台的技能安装路径")
     .action(async (platformName: string) => {
       const platform = normalizePlatform(platformName);

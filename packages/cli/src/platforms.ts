@@ -2,7 +2,7 @@ import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import fs from "fs-extra";
 
-export type SupportedPlatform = "cursor" | "claude-code" | "codex";
+export type SupportedPlatform = "cursor" | "claude-code" | "codex" | "trae";
 
 export interface PlatformConfig {
   id: SupportedPlatform;
@@ -36,6 +36,11 @@ const platformConfigs: Record<SupportedPlatform, PlatformConfig> = {
     id: "codex",
     label: "Codex",
     defaultDir: process.env.SKILLS_CODEX_DIR || join(homedir(), ".codex", "skills")
+  },
+  trae: {
+    id: "trae",
+    label: "Trae",
+    defaultDir: process.env.SKILLS_TRAE_DIR || join(homedir(), ".trae", "skills")
   }
 };
 
