@@ -1,9 +1,46 @@
 import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface Props {
   onBrowse: () => void;
+  theme: "light" | "dark";
+  onToggleTheme: () => void;
+}
+
+function TypewriterText({ text, speed = 18, delay = 0 }: { text: string; speed?: number; delay?: number }) {
+  const [displayed, setDisplayed] = useState("");
+  const [started, setStarted] = useState(delay === 0);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    if (delay === 0) return;
+    const t = setTimeout(() => setStarted(true), delay);
+    return () => clearTimeout(t);
+  }, [delay]);
+
+  useEffect(() => {
+    if (!started) return;
+    setDisplayed("");
+    setDone(false);
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setDisplayed(text.slice(0, i));
+      if (i >= text.length) {
+        clearInterval(interval);
+        setDone(true);
+      }
+    }, speed);
+    return () => clearInterval(interval);
+  }, [started, text, speed]);
+
+  return (
+    <span>
+      {displayed}
+      {!done && <span className="typewriter-cursor" />}
+    </span>
+  );
 }
 
 const features = [
@@ -29,16 +66,18 @@ const containerVariants = {
   visible: { transition: { staggerChildren: 0.12 } },
 };
 
+const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
+
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } },
 };
 
-export function HomePage({ onBrowse }: Props) {
+export function HomePage({ onBrowse, theme, onToggleTheme }: Props) {
   const [copied, setCopied] = useState(false);
 
   async function copyInstall() {
-    await navigator.clipboard.writeText("npm install -g @hacxy/skills");
+    await navigator.clipboard.writeText("npx @hacxy/skills");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -52,6 +91,9 @@ export function HomePage({ onBrowse }: Props) {
           <span>Skills</span>
         </div>
         <div className="home-nav-right">
+          <button className="theme-toggle" onClick={onToggleTheme} title={theme === "dark" ? "切换浅色" : "切换深色"}>
+            <Icon icon={theme === "dark" ? "lucide:sun" : "lucide:moon"} width="16" height="16" />
+          </button>
           <a
             href="https://github.com/hacxy/skills"
             target="_blank"
@@ -81,17 +123,20 @@ export function HomePage({ onBrowse }: Props) {
           </motion.div>
 
           <motion.h1 variants={itemVariants} className="hero-title">
-            AI 助手<br />技能集
+            AI 助手技能集
           </motion.h1>
 
           <motion.p variants={itemVariants} className="hero-desc">
-            我个人的 AI 编程助手技能集合，专为 Claude Code、Cursor 和 Codex 设计。
-            有强烈的个人主见，主要为自己的工作流维护，同时对所有人开放使用。
+            <TypewriterText
+              text="精选 AI 编程技能集，一条命令安装到 Claude Code、Cursor 或 Codex，立即增强你的工作流。"
+              speed={20}
+              delay={700}
+            />
           </motion.p>
 
           <motion.div variants={itemVariants} className="install-cmd">
             <Icon icon="lucide:terminal" width="14" height="14" className="cmd-icon" />
-            <code>npm install -g @hacxy/skills</code>
+            <code>npx @hacxy/skills</code>
             <button className="cmd-copy" onClick={() => void copyInstall()}>
               <Icon
                 icon={copied ? "lucide:check" : "lucide:copy"}
@@ -154,16 +199,14 @@ export function HomePage({ onBrowse }: Props) {
         >
           <h2 className="usage-title">快速开始</h2>
           <div className="code-block">
-            <pre>{`# 安装 CLI
+            <pre>{`# 推荐：免安装直接使用
+npx @hacxy/skills list
+npx @hacxy/skills search commit
+npx @hacxy/skills install commit
+
+# 或全局安装（长期使用更快）
 npm install -g @hacxy/skills
-
-# 列出所有技能
 skills list
-
-# 按关键字搜索
-skills search commit
-
-# 安装到 Claude Code
 skills install commit`}</pre>
           </div>
         </motion.div>
