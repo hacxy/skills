@@ -95,6 +95,10 @@ npm run dev:web    # start web app
 npm run dev:cli    # run CLI in dev mode
 ```
 
+## License
+
+[MIT](LICENSE)
+
 ---
 
 > 中文文档请见 [README.zh.md](./README.zh.md)

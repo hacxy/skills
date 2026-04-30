@@ -95,6 +95,10 @@ npm run dev:web    # 启动 Web 应用
 npm run dev:cli    # CLI 开发模式
 ```
 
+## 许可证
+
+[MIT](LICENSE)
+
 ---
 
 > English documentation: [README.md](./README.md)
