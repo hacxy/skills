@@ -75,10 +75,13 @@ export function App() {
       const path = window.location.pathname;
       if (path === "/") {
         setPage("home");
+        setSelectedName("");
       } else {
         setPage("explorer");
         if (path.startsWith("/skill/")) {
           setSelectedName(decodeURIComponent(path.replace("/skill/", "")));
+        } else {
+          setSelectedName("");
         }
       }
     };
@@ -112,7 +115,11 @@ export function App() {
   }, [page]);
 
   useEffect(() => {
-    if (!selectedName || page !== "explorer") return;
+    if (page !== "explorer") return;
+    if (!selectedName) {
+      setSelectedDoc(null);
+      return;
+    }
     const targetPath = `/skill/${encodeURIComponent(selectedName)}`;
     if (window.location.pathname !== targetPath) {
       window.history.pushState(null, "", targetPath);
