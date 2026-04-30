@@ -208,12 +208,7 @@ skills install commit`}</pre>
 
       {/* Footer */}
       <footer className="home-footer">
-        <p>
-          {t("footer.openSource")} ·{" "}
-          <a href="https://github.com/hacxy/skills" target="_blank" rel="noopener noreferrer">
-            hacxy/skills
-          </a>
-        </p>
+        <p>MIT Licensed | Copyright © 2023-Present <a href="https://github.com/hacxy" target="_blank" rel="noopener noreferrer">Hacxy</a></p>
       </footer>
     </div>
   );

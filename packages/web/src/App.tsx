@@ -1,6 +1,6 @@
 import { Icon } from "@iconify/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { marked } from "marked";
 import { useTranslation } from "react-i18next";
 import { HomePage } from "./HomePage";
@@ -127,7 +127,6 @@ export function App() {
   const [query, setQuery] = useState("");
   const [copiedInstall, setCopiedInstall] = useState(false);
   const [activeTool, setActiveTool] = useState(0);
-  const filesCache = useRef<Record<string, string[]>>({});
   const [selectedFile, setSelectedFile] = useState("SKILL.md");
   const [viewContent, setViewContent] = useState("");
   const [isLoadingFile, setIsLoadingFile] = useState(false);
@@ -201,9 +200,6 @@ export function App() {
         files: s.files ?? ["SKILL.md"],
       }));
       setSkills(mapped);
-      for (const s of mapped) {
-        filesCache.current[s.name] = s.files;
-      }
     } catch {
       // silently keep empty state on network or parse errors
     }
@@ -244,7 +240,7 @@ export function App() {
           description: data.description || "",
           relativePath: `skills/${selectedName}/SKILL.md`,
           directory: selectedName,
-          files: filesCache.current[selectedName] ?? ["SKILL.md"],
+          files: ["SKILL.md"],
           content,
           raw,
         };
@@ -262,22 +258,16 @@ export function App() {
     );
   }, [query, skills]);
 
+  const currentFiles = useMemo(
+    () => skills.find((s) => s.name === selectedName)?.files ?? ["SKILL.md"],
+    [skills, selectedName],
+  );
+
   async function copyInstallCmd(cmd: string) {
     await navigator.clipboard.writeText(cmd);
     setCopiedInstall(true);
     setTimeout(() => setCopiedInstall(false), 2000);
   }
-
-  // When registry loads after direct URL access, backfill files into selectedDoc
-  useEffect(() => {
-    if (!selectedName) return;
-    const skill = skills.find((s) => s.name === selectedName);
-    if (!skill) return;
-    setSelectedDoc((prev) => {
-      if (!prev || skill.files.join() === prev.files.join()) return prev;
-      return { ...prev, files: skill.files };
-    });
-  }, [skills, selectedName]);
 
   async function loadFile(filePath: string) {
     setSelectedFile(filePath);
@@ -286,9 +276,10 @@ export function App() {
       return;
     }
     setIsLoadingFile(true);
-    const raw = await fetch(
-      `${RAW_BASE}/skills/${encodeURIComponent(selectedName)}/${filePath}`,
-    ).then((r) => r.text());
+    const url = import.meta.env.DEV
+      ? `/api/file/${encodeURIComponent(selectedName)}/${filePath}`
+      : `${RAW_BASE}/skills/${encodeURIComponent(selectedName)}/${filePath}`;
+    const raw = await fetch(url).then((r) => r.text());
     setViewContent(raw);
     setIsLoadingFile(false);
   }
@@ -520,7 +511,7 @@ export function App() {
                     })()}
 
                     <div className="content-area">
-                      {selectedDoc.files.length > 0 && (
+                      {currentFiles.length > 0 && (
                         <div className="file-selector">
                           <Icon icon="lucide:files" width="13" height="13" />
                           <select
@@ -528,7 +519,7 @@ export function App() {
                             value={selectedFile}
                             onChange={(e) => void loadFile(e.target.value)}
                           >
-                            {selectedDoc.files.map((f) => (
+                            {currentFiles.map((f) => (
                               <option key={f} value={f}>
                                 {f}
                               </option>
@@ -557,6 +548,10 @@ export function App() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <footer className="home-footer">
+          <p>MIT Licensed | Copyright © 2023-Present <a href="https://github.com/hacxy" target="_blank" rel="noopener noreferrer">Hacxy</a></p>
+        </footer>
       </motion.div>
     </AnimatePresence>
   );
