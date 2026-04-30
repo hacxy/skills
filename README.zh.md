@@ -1,80 +1,100 @@
-# Skills 工具集
+# skills
 
-这是一个用于管理、检索、预览和分发本地 skills 的 monorepo。
+这是我个人的 skill 集合——带有强烈的个人主见，主要为我自己的工作流维护，同时对所有人开放使用。
 
-## 技术栈（最新稳定版）
+Skills 存储在本仓库并同步到中央 registry：[hacxy/skills](https://github.com/hacxy/skills)。通过 CLI 可将它们安装到 Claude Code、Cursor 或 Codex。
 
-- Node.js 20+
-- TypeScript
-- Vite + React
-- Commander CLI
+[English](./README.md)
 
-## 目录结构
+## 安装
 
-- `skills/`: skill 内容目录（每个 skill 含 `SKILL.md`）
-- `packages/core`: 共享解析/检索/校验逻辑
-- `packages/cli`: `skills` 命令行工具
-- `apps/web`: Skill 检索与预览网页
+```bash
+npm install -g @hacxy/skills
+```
+
+## CLI 用法
+
+### 浏览
+
+```bash
+# 列出所有技能
+skills list
+
+# 按关键字搜索
+skills search commit
+
+# 查看技能详情
+skills show commit
+```
+
+### 安装
+
+```bash
+# 安装到 Claude Code（默认）
+skills install commit
+
+# 安装到 Cursor 或 Codex
+skills install commit --platform cursor
+skills install commit --platform codex
+
+# 同时安装多个技能
+skills install commit review find-docs
+
+# 安装 registry 中的全部技能
+skills install
+
+# 同时安装到所有平台
+skills install --all-platforms
+
+# 预览安装路径，不实际写入
+skills install commit --dry-run
+```
+
+支持的平台：`claude-code`、`cursor`、`codex`
+
+### 查看安装路径
+
+```bash
+skills where claude-code
+skills where cursor
+skills where codex
+```
+
+## 所有者命令
+
+这些命令需要所有者认证，仅在你 fork 本仓库管理自己的 registry 时有用。
+
+```bash
+# 初始化 owner token
+skills auth init --token your-secret-token
+
+# 查看认证状态
+skills auth status
+
+# 上传技能到 registry
+skills upload --source ./my-skill
+skills upload --source ./my-skill --force        # 已存在时覆盖
+skills upload --source ./my-skill --dry-run      # 仅预览
+```
+
+上传会将技能写入本地 `skills/` 目录，并通过 GitHub Contents API 推送到仓库——所有用户立即可见。
+
+上传所需的环境变量：
+
+| 变量 | 说明 |
+|---|---|
+| `SKILLS_OWNER_TOKEN` | 上传认证用 owner token |
+| `GITHUB_TOKEN` / `GH_TOKEN` | 具备仓库写权限的 GitHub token |
 
 ## 本地开发
 
 ```bash
 npm install
 npm run build
-npm run dev:web
+npm run dev:web    # 启动 Web 应用
+npm run dev:cli    # CLI 开发模式
 ```
-
-## CLI 用法
-
-```bash
-# 列表/搜索/查看
-node packages/cli/dist/index.js list --skills-dir .
-node packages/cli/dist/index.js search commit --skills-dir .
-node packages/cli/dist/index.js show find-docs --skills-dir .
-
-# 安装到平台
-node packages/cli/dist/index.js install --platform cursor --skills-dir .
-node packages/cli/dist/index.js install --all-platforms --skills-dir .
-node packages/cli/dist/index.js where codex
-```
-
-## 仅所有者上传（双因子）
-
-上传功能要求同时通过两项校验：
-
-1. GitHub 登录用户匹配 `SKILLS_OWNER_GITHUB`
-2. 本地 token hash 文件与 `SKILLS_OWNER_TOKEN` 匹配
-
-```bash
-# 初始化 token hash 文件
-node packages/cli/dist/index.js auth init --token your-secret-token
-
-# 配置上传 token
-export SKILLS_OWNER_TOKEN=your-secret-token
-export SKILLS_OWNER_GITHUB=hacxy
-
-# 查看认证状态
-node packages/cli/dist/index.js auth status
-
-# 上传 skill
-node packages/cli/dist/index.js upload --source ./path/to/skill --skills-dir . --on-conflict rename
-```
-
-## Web 功能
-
-- Skill 搜索与预览
-- 路由直达：`/skill/:name`
-- 仅 owner 显示上传入口（双因子失败时隐藏）
-- 上传冲突策略：`rename`、`overwrite`、`error`
-
-## CLI 发布说明
-
-发布前建议：
-
-1. 更新 `packages/cli/package.json`（`name`、`version`、`description`）
-2. 执行构建：`npm run build`
-3. 在 `packages/cli` 目录发布：`npm publish --access public`
 
 ---
 
-English version: `README.md`
+> English documentation: [README.md](./README.md)

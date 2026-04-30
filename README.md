@@ -1,80 +1,100 @@
-# Skills Toolkit
+# skills
 
-A monorepo for managing, searching, previewing, and distributing local skills.
+My personal skill collection for AI coding assistants — opinionated, maintained for my own workflow, and open for anyone to use.
 
-## Tech Stack (Latest Stable)
+Skills are stored in this repo and synced to a central registry at [hacxy/skills](https://github.com/hacxy/skills). They can be installed into Claude Code, Cursor, or Codex via the CLI.
 
-- Node.js 20+
-- TypeScript
-- Vite + React
-- Commander CLI
+[中文](./README.zh.md)
 
-## Workspace Structure
+## Installation
 
-- `skills/`: all skill content (each skill has `SKILL.md`)
-- `packages/core`: shared parser/search/doctor logic
-- `packages/cli`: `skills` CLI
-- `apps/web`: search and preview web app
+```bash
+npm install -g @hacxy/skills
+```
+
+## CLI Usage
+
+### Browse
+
+```bash
+# list all skills
+skills list
+
+# search by keyword
+skills search commit
+
+# view a skill's content
+skills show commit
+```
+
+### Install
+
+```bash
+# install to Claude Code (default)
+skills install commit
+
+# install to Cursor or Codex
+skills install commit --platform cursor
+skills install commit --platform codex
+
+# install multiple skills at once
+skills install commit review find-docs
+
+# install all skills from the registry
+skills install
+
+# install to all platforms at once
+skills install --all-platforms
+
+# preview install paths without writing
+skills install commit --dry-run
+```
+
+Supported platforms: `claude-code`, `cursor`, `codex`
+
+### Check install paths
+
+```bash
+skills where claude-code
+skills where cursor
+skills where codex
+```
+
+## Owner Commands
+
+These commands require owner authentication and are only useful if you've forked this repo to manage your own registry.
+
+```bash
+# initialize owner token
+skills auth init --token your-secret-token
+
+# check auth status
+skills auth status
+
+# upload a skill to the registry
+skills upload --source ./my-skill
+skills upload --source ./my-skill --force        # overwrite if exists
+skills upload --source ./my-skill --dry-run      # preview only
+```
+
+Upload writes the skill to the local `skills/` directory and pushes it to GitHub via the Contents API — immediately visible to all users.
+
+Required environment variables for upload:
+
+| Variable | Description |
+|---|---|
+| `SKILLS_OWNER_TOKEN` | Owner token for upload auth |
+| `GITHUB_TOKEN` / `GH_TOKEN` | GitHub token with repo write access |
 
 ## Development
 
 ```bash
 npm install
 npm run build
-npm run dev:web
+npm run dev:web    # start web app
+npm run dev:cli    # run CLI in dev mode
 ```
-
-## CLI Usage
-
-```bash
-# list/search/show
-node packages/cli/dist/index.js list --skills-dir .
-node packages/cli/dist/index.js search commit --skills-dir .
-node packages/cli/dist/index.js show find-docs --skills-dir .
-
-# install to platforms
-node packages/cli/dist/index.js install --platform cursor --skills-dir .
-node packages/cli/dist/index.js install --all-platforms --skills-dir .
-node packages/cli/dist/index.js where codex
-```
-
-## Owner-only Upload (2FA)
-
-Upload is restricted to owner only with both checks:
-
-1. GitHub login matches `SKILLS_OWNER_GITHUB`
-2. local token hash file matches `SKILLS_OWNER_TOKEN`
-
-```bash
-# initialize token hash file
-node packages/cli/dist/index.js auth init --token your-secret-token
-
-# export upload token
-export SKILLS_OWNER_TOKEN=your-secret-token
-export SKILLS_OWNER_GITHUB=hacxy
-
-# check auth status
-node packages/cli/dist/index.js auth status
-
-# upload skill
-node packages/cli/dist/index.js upload --source ./path/to/skill --skills-dir . --on-conflict rename
-```
-
-## Web App Features
-
-- Search and preview skill content
-- Direct route support: `/skill/:name`
-- Owner-only upload UI (hidden when 2FA fails)
-- Conflict strategy on upload: `rename`, `overwrite`, `error`
-
-## Publish Notes (CLI)
-
-Before npm publish:
-
-1. Update `packages/cli/package.json` (`name`, `version`, `description`)
-2. Build once: `npm run build`
-3. Publish from `packages/cli`: `npm publish --access public`
 
 ---
 
-Chinese version: `README.zh.md`
+> 中文文档请见 [README.zh.md](./README.zh.md)
