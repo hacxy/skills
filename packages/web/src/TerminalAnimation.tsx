@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 
 interface Props {
   skillName: string;
+  command: string;
 }
 
-export function TerminalAnimation({ skillName }: Props) {
-  const command = `npx @hacxy/skills install ${skillName}`;
+export function TerminalAnimation({ skillName, command }: Props) {
   const [typed, setTyped] = useState(0);
   const [showLine1, setShowLine1] = useState(false);
   const [showLine2, setShowLine2] = useState(false);

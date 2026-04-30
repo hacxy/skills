@@ -287,7 +287,7 @@ body {
   color: var(--text-2);
   margin-bottom: 18px;
   line-height: 1.65;
-  max-width: 640px;
+  max-width: 100%;
 }
 
 .url-row {
@@ -1148,6 +1148,45 @@ button.logo:hover span {
   50% { opacity: 0; }
 }
 
+/* ── Install tabs ──────────────────────────────────────────── */
+
+.install-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  padding: 6px 8px 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.install-tab {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -1px;
+}
+
+.install-tab:hover {
+  color: var(--text-2);
+}
+
+.install-tab-active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
 /* ── Skill install box ─────────────────────────────────────── */
 
 .install-box {
@@ -1157,7 +1196,7 @@ button.logo:hover span {
   padding: 10px 14px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 0 0 10px 10px;
   box-shadow: var(--shadow-sm);
   margin-bottom: 20px;
 }
@@ -1427,7 +1466,7 @@ button.logo:hover span {
 .explorer-detail {
   flex: 1;
   padding: 36px 44px 60px;
-  max-width: 900px;
+  max-width: 860px;
   margin: 0 auto;
   width: 100%;
 }
@@ -1475,7 +1514,8 @@ button.logo:hover span {
 
 .terminal-body {
   padding: 14px 18px 18px;
-  min-height: 82px;
+  height: 104px;
+  overflow: hidden;
 }
 
 .term-line {
@@ -1513,4 +1553,43 @@ button.logo:hover span {
 @keyframes termFadeIn {
   from { opacity: 0; transform: translateY(3px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── File selector ─────────────────────────────── */
+.content-area {
+  margin-top: 24px;
+}
+
+.file-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  color: var(--text-3);
+}
+
+.file-select {
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
+  outline: none;
+  max-width: 420px;
+  transition: border-color 0.15s;
+}
+
+.file-select:hover,
+.file-select:focus {
+  border-color: var(--primary);
+}
+
+.file-loading {
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }

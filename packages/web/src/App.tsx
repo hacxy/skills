@@ -1,6 +1,6 @@
 import { Icon } from "@iconify/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { marked } from "marked";
 import { useTranslation } from "react-i18next";
 import { HomePage } from "./HomePage";
@@ -16,15 +16,55 @@ function parseFrontmatter(text: string): {
   const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
   if (!match) return { data: {}, content: text };
   const data: Record<string, string> = {};
-  for (const line of match[1].split(/\r?\n/)) {
+  const lines = match[1].split(/\r?\n/);
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
     const colon = line.indexOf(":");
-    if (colon < 0) continue;
+    if (colon < 0) {
+      i++;
+      continue;
+    }
     const key = line.slice(0, colon).trim();
-    const val = line
-      .slice(colon + 1)
-      .trim()
-      .replace(/^["']|["']$/g, "");
-    if (key) data[key] = val;
+    const rawVal = line.slice(colon + 1).trim();
+    if (!key) {
+      i++;
+      continue;
+    }
+    // Handle YAML block scalars: >-, >, |-, |
+    if (/^[>|]-?$/.test(rawVal)) {
+      const fold = rawVal.startsWith(">");
+      const strip = rawVal.endsWith("-");
+      i++;
+      const blockLines: string[] = [];
+      while (i < lines.length) {
+        const next = lines[i];
+        if (next !== "" && !next.startsWith(" ") && !next.startsWith("\t"))
+          break;
+        blockLines.push(next.trimStart());
+        i++;
+      }
+      if (fold) {
+        // Folded: consecutive non-empty lines join with space; empty line = paragraph break
+        let result = "";
+        for (const bl of blockLines) {
+          if (bl === "") {
+            result = result.trimEnd() + "\n";
+          } else {
+            result += (result && !result.endsWith("\n") ? " " : "") + bl;
+          }
+        }
+        data[key] = strip ? result.trimEnd() : result;
+      } else {
+        // Literal: preserve newlines
+        data[key] = strip
+          ? blockLines.join("\n").trimEnd()
+          : blockLines.join("\n");
+      }
+    } else {
+      data[key] = rawVal.replace(/^["']|["']$/g, "");
+      i++;
+    }
   }
   return { data, content: match[2] };
 }
@@ -34,17 +74,12 @@ interface SkillMeta {
   description: string;
   relativePath: string;
   directory: string;
+  files: string[];
 }
 
 interface SkillDoc extends SkillMeta {
   content: string;
   raw: string;
-}
-
-interface AuthStatus {
-  canUpload: boolean;
-  tokenOk: boolean;
-  reason?: string;
 }
 
 type Page = "home" | "explorer";
@@ -90,13 +125,12 @@ export function App() {
   const [selectedDoc, setSelectedDoc] = useState<SkillDoc | null>(null);
   const [isLoadingDoc, setIsLoadingDoc] = useState(false);
   const [query, setQuery] = useState("");
-  const [auth, setAuth] = useState<AuthStatus | null>(null);
-  const [uploadName, setUploadName] = useState("");
-  const [uploadContent, setUploadContent] = useState("");
-  const [uploadMessage, setUploadMessage] = useState("");
-  const [uploadOk, setUploadOk] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [copiedInstall, setCopiedInstall] = useState(false);
+  const [activeTool, setActiveTool] = useState(0);
+  const filesCache = useRef<Record<string, string[]>>({});
+  const [selectedFile, setSelectedFile] = useState("SKILL.md");
+  const [viewContent, setViewContent] = useState("");
+  const [isLoadingFile, setIsLoadingFile] = useState(false);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -110,8 +144,12 @@ export function App() {
   function navigateTo(target: Page) {
     setPage(target);
     if (target === "home") {
+      setSelectedName("");
+      setSelectedDoc(null);
       window.history.pushState(null, "", "/");
     } else {
+      setSelectedName("");
+      setSelectedDoc(null);
       window.history.pushState(null, "", "/explorer");
     }
   }
@@ -143,31 +181,37 @@ export function App() {
   }, []);
 
   async function reloadSkills() {
-    const res = await fetch(`${RAW_BASE}/skills-registry.json`);
-    const data = (await res.json()) as { name: string; description: string }[];
-    const mapped: SkillMeta[] = data.map((s) => ({
-      name: s.name,
-      description: s.description,
-      relativePath: `skills/${s.name}/SKILL.md`,
-      directory: s.name,
-    }));
-    setSkills(mapped);
-  }
-
-  async function loadAuthStatus() {
     try {
-      const res = await fetch("/api/auth/status");
-      const data = (await res.json()) as AuthStatus;
-      setAuth(data);
+      const url = import.meta.env.DEV
+        ? "/api/skills"
+        : `${RAW_BASE}/skills-registry.json`;
+      const res = await fetch(url);
+      const data = (await res.json()) as {
+        name: string;
+        description: string;
+        relativePath?: string;
+        directory?: string;
+        files?: string[];
+      }[];
+      const mapped: SkillMeta[] = data.map((s) => ({
+        name: s.name,
+        description: s.description,
+        relativePath: s.relativePath ?? `skills/${s.name}/SKILL.md`,
+        directory: s.directory ?? s.name,
+        files: s.files ?? ["SKILL.md"],
+      }));
+      setSkills(mapped);
+      for (const s of mapped) {
+        filesCache.current[s.name] = s.files;
+      }
     } catch {
-      setAuth(null);
+      // silently keep empty state on network or parse errors
     }
   }
 
   useEffect(() => {
     if (page !== "explorer") return;
     void reloadSkills();
-    void loadAuthStatus();
     const path = window.location.pathname;
     if (path.startsWith("/skill/")) {
       setSelectedName(decodeURIComponent(path.replace("/skill/", "")));
@@ -178,6 +222,7 @@ export function App() {
     if (page !== "explorer") return;
     if (!selectedName) {
       setSelectedDoc(null);
+      setViewContent("");
       return;
     }
     const targetPath = `/skill/${encodeURIComponent(selectedName)}`;
@@ -186,6 +231,8 @@ export function App() {
     }
     setIsLoadingDoc(true);
     setSelectedDoc(null);
+    setSelectedFile("SKILL.md");
+    setActiveTool(0);
     void fetch(
       `${RAW_BASE}/skills/${encodeURIComponent(selectedName)}/SKILL.md`,
     )
@@ -197,10 +244,12 @@ export function App() {
           description: data.description || "",
           relativePath: `skills/${selectedName}/SKILL.md`,
           directory: selectedName,
+          files: filesCache.current[selectedName] ?? ["SKILL.md"],
           content,
           raw,
         };
         setSelectedDoc(doc);
+        setViewContent(content);
         setIsLoadingDoc(false);
       });
   }, [selectedName, page]);
@@ -213,40 +262,35 @@ export function App() {
     );
   }, [query, skills]);
 
-  const skillUrl = selectedDoc
-    ? `${window.location.origin}/skill/${encodeURIComponent(selectedDoc.name)}`
-    : "";
-
-  async function copyUrl() {
-    await navigator.clipboard.writeText(skillUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  async function copyInstallCmd(name: string) {
-    await navigator.clipboard.writeText(`npx @hacxy/skills install ${name}`);
+  async function copyInstallCmd(cmd: string) {
+    await navigator.clipboard.writeText(cmd);
     setCopiedInstall(true);
     setTimeout(() => setCopiedInstall(false), 2000);
   }
 
-  async function uploadSkill() {
-    setUploadMessage("");
-    const res = await fetch("/api/upload", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        name: uploadName,
-        content: uploadContent,
-      }),
+  // When registry loads after direct URL access, backfill files into selectedDoc
+  useEffect(() => {
+    if (!selectedName) return;
+    const skill = skills.find((s) => s.name === selectedName);
+    if (!skill) return;
+    setSelectedDoc((prev) => {
+      if (!prev || skill.files.join() === prev.files.join()) return prev;
+      return { ...prev, files: skill.files };
     });
-    const data = (await res.json()) as { ok: boolean; message: string };
-    setUploadOk(data.ok);
-    setUploadMessage(data.message);
-    if (data.ok) {
-      setUploadName("");
-      setUploadContent("");
-      await reloadSkills();
+  }, [skills, selectedName]);
+
+  async function loadFile(filePath: string) {
+    setSelectedFile(filePath);
+    if (filePath === "SKILL.md" && selectedDoc) {
+      setViewContent(selectedDoc.content);
+      return;
     }
+    setIsLoadingFile(true);
+    const raw = await fetch(
+      `${RAW_BASE}/skills/${encodeURIComponent(selectedName)}/${filePath}`,
+    ).then((r) => r.text());
+    setViewContent(raw);
+    setIsLoadingFile(false);
   }
 
   if (page === "home") {
@@ -328,7 +372,9 @@ export function App() {
                   )}
                 </div>
                 {query && (
-                  <p className="search-hint">{t("explorer.searchResults", { count: filtered.length })}</p>
+                  <p className="search-hint">
+                    {t("explorer.searchResults", { count: filtered.length })}
+                  </p>
                 )}
               </div>
 
@@ -410,80 +456,104 @@ export function App() {
                     <h1 className="doc-title">{selectedDoc.name}</h1>
                     <p className="doc-desc">{selectedDoc.description}</p>
 
-                    <TerminalAnimation skillName={selectedDoc.name} />
+                    {(() => {
+                      const tools = [
+                        {
+                          label: "Claude Code",
+                          cmd: `npx @hacxy/skills install ${selectedDoc.name}`,
+                        },
+                        {
+                          label: "Cursor",
+                          cmd: `npx @hacxy/skills install ${selectedDoc.name} --platform cursor`,
+                        },
+                        {
+                          label: "Codex",
+                          cmd: `npx @hacxy/skills install ${selectedDoc.name} --platform codex`,
+                        },
+                        {
+                          label: "Trae",
+                          cmd: `npx @hacxy/skills install ${selectedDoc.name} --platform trae`,
+                        },
+                      ];
+                      const tool = tools[activeTool];
+                      return (
+                        <>
+                          <div className="install-tabs">
+                            {tools.map((t, i) => (
+                              <button
+                                key={t.label}
+                                className={`install-tab${activeTool === i ? " install-tab-active" : ""}`}
+                                onClick={() => setActiveTool(i)}
+                              >
+                                {t.label}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="install-box">
+                            <span className="install-box-label">
+                              {t("explorer.install")}
+                            </span>
+                            <code>{tool.cmd}</code>
+                            <button
+                              className="copy-btn"
+                              onClick={() => void copyInstallCmd(tool.cmd)}
+                            >
+                              <Icon
+                                icon={
+                                  copiedInstall ? "lucide:check" : "lucide:copy"
+                                }
+                                width="13"
+                                height="13"
+                              />
+                              {copiedInstall
+                                ? t("explorer.copied")
+                                : t("explorer.copy")}
+                            </button>
+                          </div>
+                          <TerminalAnimation
+                            key={activeTool}
+                            skillName={selectedDoc.name}
+                            command={tool.cmd}
+                          />
+                        </>
+                      );
+                    })()}
 
-                    <div className="install-box">
-                      <span className="install-box-label">{t("explorer.install")}</span>
-                      <code>npx @hacxy/skills install {selectedDoc.name}</code>
-                      <button
-                        className="copy-btn"
-                        onClick={() => void copyInstallCmd(selectedDoc.name)}
-                      >
-                        <Icon
-                          icon={copiedInstall ? "lucide:check" : "lucide:copy"}
-                          width="13"
-                          height="13"
+                    <div className="content-area">
+                      {selectedDoc.files.length > 0 && (
+                        <div className="file-selector">
+                          <Icon icon="lucide:files" width="13" height="13" />
+                          <select
+                            className="file-select"
+                            value={selectedFile}
+                            onChange={(e) => void loadFile(e.target.value)}
+                          >
+                            {selectedDoc.files.map((f) => (
+                              <option key={f} value={f}>
+                                {f}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      {isLoadingFile ? (
+                        <div className="file-loading">
+                          <div className="skeleton sk-line" />
+                          <div className="skeleton sk-line sk-short" />
+                          <div className="skeleton sk-block" />
+                        </div>
+                      ) : (
+                        <article
+                          className="markdown"
+                          dangerouslySetInnerHTML={{
+                            __html: marked.parse(viewContent) as string,
+                          }}
                         />
-                        {copiedInstall ? t("explorer.copied") : t("explorer.copy")}
-                      </button>
+                      )}
                     </div>
-
-                    <div className="url-row">
-                      <span className="url-chip">{skillUrl}</span>
-                      <button
-                        className="copy-btn"
-                        onClick={() => void copyUrl()}
-                      >
-                        <Icon
-                          icon={copied ? "lucide:check" : "lucide:copy"}
-                          width="13"
-                          height="13"
-                        />
-                        {copied ? t("explorer.copied") : t("explorer.copyLink")}
-                      </button>
-                    </div>
-
-                    <article
-                      className="markdown"
-                      dangerouslySetInnerHTML={{
-                        __html: marked.parse(selectedDoc.content) as string,
-                      }}
-                    />
                   </motion.div>
                 ) : null}
               </AnimatePresence>
-
-              {auth?.canUpload && (
-                <motion.section
-                  className="upload"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25 }}
-                >
-                  <h3 className="upload-title">{t("explorer.upload.title")}</h3>
-                  <input
-                    value={uploadName}
-                    onChange={(e) => setUploadName(e.target.value)}
-                    placeholder={t("explorer.upload.namePlaceholder")}
-                  />
-                  <textarea
-                    value={uploadContent}
-                    onChange={(e) => setUploadContent(e.target.value)}
-                    placeholder={t("explorer.upload.contentPlaceholder")}
-                  />
-                  <button
-                    className="upload-btn"
-                    onClick={() => void uploadSkill()}
-                  >
-                    {t("explorer.upload.submit")}
-                  </button>
-                  {uploadMessage && (
-                    <p className={uploadOk ? "msg-ok" : "msg-err"}>
-                      {uploadMessage}
-                    </p>
-                  )}
-                </motion.section>
-              )}
             </motion.div>
           )}
         </AnimatePresence>
