@@ -1,3 +1,13 @@
+## [0.0.4](https://github.com/hacxy/skills/compare/v0.0.3...v0.0.4) (2026-04-30)
+
+
+### Features
+
+* update skill create-skill ([ab0720c](https://github.com/hacxy/skills/commit/ab0720c4c9f40c76699da8b3dfa0f7622d3930d9))
+* update skill create-skill ([a3af0d7](https://github.com/hacxy/skills/commit/a3af0d7514926c489659db2f60926e4292f42fab))
+* **web:** 集成 i18n 多语言支持，默认中文自动跟随浏览器语言 ([6fbe3f4](https://github.com/hacxy/skills/commit/6fbe3f4fa069928def0d8a7d5e393187a55aca62))
+* 新增 Trae 平台支持并更新相关文档 ([d8fca72](https://github.com/hacxy/skills/commit/d8fca72e5fbdaf28afc6f995bcdc1649551acdec))
+
 ## [0.0.3](https://github.com/hacxy/skills/compare/v0.0.2...v0.0.3) (2026-04-30)
 
 
