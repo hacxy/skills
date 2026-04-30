@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import chalk from "chalk";
-import { basename, dirname, join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
@@ -14,13 +14,10 @@ import {
   installSkillDirectory,
   type SupportedPlatform,
 } from "./platforms.js";
-import { ensureOwnerAccess } from "./auth.js";
 import {
   fetchRegistryIndex,
   fetchSkillContent,
   fetchSkillDirectory,
-  getGithubToken,
-  pushSkillDirectory,
 } from "./registry.js";
 
 const _require = createRequire(import.meta.url);
@@ -227,63 +224,6 @@ async function run() {
       console.log(`${result.label}: ${result.defaultDir}`);
       console.log(`exists=${result.exists} writable=${result.writable}`);
       console.log(`note=${result.note}`);
-    });
-
-  program
-    .command("auth")
-    .description("查看上传权限状态")
-    .addCommand(
-      new Command("status").action(async () => {
-        const status = await ensureOwnerAccess();
-        console.log(`token=${status.tokenOk}`);
-        if (!status.ok) {
-          console.log(chalk.red(status.reason || "未通过校验"));
-          process.exitCode = 1;
-        } else {
-          console.log(chalk.green("校验通过，可以上传"));
-        }
-      }),
-    );
-
-  program
-    .command("upload")
-    .description("上传技能到 registry（仅所有者）")
-    .option("--source <path>", "技能目录或 SKILL.md 文件路径")
-    .option("--name <name>", "技能名称（无法推断时使用）")
-    .option("--force", "冲突时覆盖", false)
-    .option("--dry-run", "预览，不实际写入", false)
-    .action(async (options) => {
-      const auth = await ensureOwnerAccess();
-      if (!auth.ok) {
-        console.error(chalk.red(`上传被拒绝: ${auth.reason}`));
-        process.exitCode = 1;
-        return;
-      }
-
-      if (!options.source) throw new Error("请提供 --source 技能目录路径");
-
-      const sourcePath = cwdOr(options.source);
-      const stat = await fs.stat(sourcePath);
-      const sourceDir = stat.isDirectory() ? sourcePath : dirname(sourcePath);
-      const targetName: string = (options.name as string | undefined) || basename(sourceDir);
-
-      if (!targetName) throw new Error("无法推断技能名称，请使用 --name 指定");
-
-      if (options.dryRun) {
-        console.log(`[dry-run] upload -> skills/${targetName}/ (${sourceDir})`);
-        return;
-      }
-
-      const token = await getGithubToken();
-      if (!token) {
-        console.error(chalk.red("未获取到 GitHub token，请设置 GITHUB_TOKEN 或执行 gh auth login"));
-        process.exitCode = 1;
-        return;
-      }
-
-      process.stdout.write(chalk.gray(`正在推送 ${targetName} 到 registry...`));
-      await pushSkillDirectory(targetName, sourceDir, token, { force: options.force });
-      console.log(chalk.green(" 完成"));
     });
 
   program
