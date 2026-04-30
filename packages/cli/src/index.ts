@@ -2,16 +2,11 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { basename, dirname, join, resolve } from "node:path";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { createRequire } from "node:module";
 import fs from "fs-extra";
-import {
-  buildSkillIndex,
-  doctorSkills,
-  loadSkillByName,
-  loadSkillFromFile,
-  searchSkills,
-  type SkillMeta,
-} from "@skills/core";
+import { doctorSkills, parseSkillContent, searchSkills } from "@skills/core";
 import {
   allPlatforms,
   detectPlatformPath,
@@ -20,58 +15,24 @@ import {
   type SupportedPlatform,
 } from "./platforms.js";
 import { ensureOwnerAccess, getOwnerConfig, initOwnerToken } from "./auth.js";
+import {
+  fetchRegistryIndex,
+  fetchSkillContent,
+  getGithubToken,
+  pushSkillToRegistry,
+} from "./registry.js";
+
+const _require = createRequire(import.meta.url);
+const { version } = _require("../package.json") as { version: string };
 
 function cwdOr(value?: string): string {
   return resolve(value || process.cwd());
 }
 
-async function resolveSkillBaseDir(rootDir: string): Promise<string> {
-  const nested = join(rootDir, "skills");
-  return (await fs.pathExists(nested)) ? nested : rootDir;
-}
-
-async function resolveConflictName(
-  baseDir: string,
-  wantedName: string,
-): Promise<string> {
-  let index = 1;
-  let candidate = wantedName;
-  while (await fs.pathExists(join(baseDir, candidate, "SKILL.md"))) {
-    index += 1;
-    candidate = `${wantedName}-${index}`;
-  }
-  return candidate;
-}
-
-async function getSkillDirectories(rootDir: string): Promise<string[]> {
-  const index = await buildSkillIndex(rootDir);
-  const set = new Set(index.map((item) => join(rootDir, item.directory)));
-  return [...set];
-}
-
-async function resolveSkillsByNames(
-  rootDir: string,
-  names: string[],
-): Promise<SkillMeta[]> {
-  const index = await buildSkillIndex(rootDir);
-  if (!names.length) {
-    return index;
-  }
-
-  const wanted = new Set(names.map((item) => item.trim().toLowerCase()));
-  const matched = index.filter((item) => wanted.has(item.name.trim().toLowerCase()));
-  if (matched.length !== wanted.size) {
-    const found = new Set(matched.map((item) => item.name.trim().toLowerCase()));
-    const missing = [...wanted].filter((item) => !found.has(item));
-    throw new Error(`未找到技能: ${missing.join(", ")}`);
-  }
-  return matched;
-}
-
-async function getInstalledPlatforms(skill: SkillMeta): Promise<SupportedPlatform[]> {
+async function getInstalledPlatforms(skillName: string): Promise<SupportedPlatform[]> {
   const installed: SupportedPlatform[] = [];
   for (const platform of allPlatforms()) {
-    const targetPath = join(getPlatformConfig(platform).defaultDir, basename(skill.directory));
+    const targetPath = join(getPlatformConfig(platform).defaultDir, skillName);
     if (await fs.pathExists(targetPath)) {
       installed.push(platform);
     }
@@ -79,65 +40,93 @@ async function getInstalledPlatforms(skill: SkillMeta): Promise<SupportedPlatfor
   return installed;
 }
 
-function renderSkillLine(skill: SkillMeta): string {
-  return `${chalk.cyan(skill.name)} ${chalk.gray(`(${skill.relativePath})`)}\n  ${skill.description}`;
+function shortDesc(description: string, max = 100): string {
+  const oneline = description.replace(/\s*\n\s*/g, " ").trim();
+  return oneline.length > max ? `${oneline.slice(0, max)}…` : oneline;
 }
 
 function normalizePlatform(input: string): SupportedPlatform {
   const value = input as SupportedPlatform;
   if (!allPlatforms().includes(value)) {
-    throw new Error(
-      `不支持的平台: ${input}，可选值: ${allPlatforms().join(", ")}`,
-    );
+    throw new Error(`不支持的平台: ${input}，可选值: ${allPlatforms().join(", ")}`);
   }
   return value;
+}
+
+async function installRegistrySkill(
+  skillName: string,
+  targetRoot: string,
+  options: { force?: boolean; dryRun?: boolean },
+): Promise<string> {
+  const content = await fetchSkillContent(skillName);
+  if (options.dryRun) {
+    return join(targetRoot, skillName);
+  }
+  const tmpBase = await mkdtemp(join(tmpdir(), `skill-${skillName}-`));
+  try {
+    const skillDir = join(tmpBase, skillName);
+    await fs.ensureDir(skillDir);
+    await writeFile(join(skillDir, "SKILL.md"), content, "utf8");
+    return await installSkillDirectory(skillDir, targetRoot, options);
+  } finally {
+    await rm(tmpBase, { recursive: true, force: true });
+  }
 }
 
 async function run() {
   const program = new Command();
   program
     .name("skills")
-    .description("Manage and preview local skills")
-    .version("0.1.0");
+    .description("Browse and install skills from the registry")
+    .version(version);
 
   program
     .command("list")
-    .option("--skills-dir <dir>", "技能目录根路径", process.cwd())
-    .action(async (options) => {
-      const skills = await buildSkillIndex(cwdOr(options.skillsDir));
+    .description("列出 registry 中的所有技能")
+    .action(async () => {
+      const skills = await fetchRegistryIndex();
       if (!skills.length) {
-        console.log(chalk.yellow("未找到任何技能。"));
+        console.log(chalk.yellow("Registry 中暂无技能。"));
         return;
       }
       for (const item of skills) {
-        const installedPlatforms = await getInstalledPlatforms(item);
+        const installedPlatforms = await getInstalledPlatforms(item.name);
         const installedMark = installedPlatforms.length
-          ? chalk.green(
-              `[已安装:${installedPlatforms
-                .map((platform) => getPlatformConfig(platform).label)
-                .join(", ")}]`,
-            )
+          ? chalk.green(`[已安装: ${installedPlatforms.map((p) => getPlatformConfig(p).label).join(", ")}]`)
           : chalk.gray("[未安装]");
         console.log(`${chalk.cyan(item.name)} ${installedMark}`);
+        console.log(`  ${chalk.gray(shortDesc(item.description))}`);
+      }
+    });
+
+  program
+    .command("search")
+    .argument("<query>", "搜索关键字")
+    .description("搜索 registry 中的技能")
+    .action(async (query: string) => {
+      const index = await fetchRegistryIndex();
+      const matched = searchSkills(index, query);
+      if (!matched.length) {
+        console.log(chalk.yellow(`未找到 "${query}"`));
+        return;
+      }
+      for (const item of matched) {
+        console.log(`${chalk.cyan(item.name)}\n  ${chalk.gray(shortDesc(item.description))}`);
       }
     });
 
   program
     .command("show")
-    .argument("<name>", "技能名称或目录名")
-    .option("--skills-dir <dir>", "技能目录根路径", process.cwd())
-    .option("--raw", "输出原始文件", false)
-    .action(async (name, options) => {
-      const doc = await loadSkillByName(cwdOr(options.skillsDir), name);
-      if (!doc) {
-        console.error(chalk.red(`未找到技能: ${name}`));
-        process.exitCode = 1;
-        return;
-      }
+    .argument("<name>", "技能名称")
+    .description("查看技能详情")
+    .option("--raw", "输出原始 Markdown", false)
+    .action(async (name: string, options) => {
+      const content = await fetchSkillContent(name);
       if (options.raw) {
-        console.log(doc.raw);
+        console.log(content);
         return;
       }
+      const doc = parseSkillContent(content, name);
       console.log(chalk.bold(doc.name));
       console.log(chalk.gray(doc.description));
       console.log();
@@ -145,43 +134,65 @@ async function run() {
     });
 
   program
-    .command("search")
-    .argument("<query>", "搜索关键字")
-    .option("--skills-dir <dir>", "技能目录根路径", process.cwd())
-    .action(async (query, options) => {
-      const index = await buildSkillIndex(cwdOr(options.skillsDir));
-      const matched = searchSkills(index, query);
-      if (!matched.length) {
-        console.log(chalk.yellow(`未搜索到 "${query}"`));
-        return;
-      }
-      for (const item of matched) {
-        console.log(renderSkillLine(item));
-      }
-    });
+    .command("install")
+    .argument("[names...]", "技能名称（留空则安装全部）")
+    .description("从 registry 下载并安装技能")
+    .option("--platform <platform>", "目标平台 cursor|claude-code|codex", "claude-code")
+    .option("--all-platforms", "安装到所有平台", false)
+    .option("--force", "覆盖已存在的技能", false)
+    .option("--dry-run", "预览，不实际写入", false)
+    .action(async (names: string[], options) => {
+      const index = await fetchRegistryIndex();
+      let targets = index;
 
-  program
-    .command("doctor")
-    .option("--skills-dir <dir>", "技能目录根路径", process.cwd())
-    .action(async (options) => {
-      const issues = await doctorSkills(cwdOr(options.skillsDir));
-      if (!issues.length) {
-        console.log(chalk.green("检查完成，没有发现问题。"));
+      if (names.length) {
+        const wanted = new Set(names.map((n) => n.trim().toLowerCase()));
+        targets = index.filter((item) => wanted.has(item.name.trim().toLowerCase()));
+        if (targets.length !== wanted.size) {
+          const found = new Set(targets.map((item) => item.name.trim().toLowerCase()));
+          const missing = [...wanted].filter((n) => !found.has(n));
+          throw new Error(`未找到技能: ${missing.join(", ")}`);
+        }
+      }
+
+      if (!targets.length) {
+        console.log(chalk.yellow("Registry 中暂无技能。"));
         return;
       }
-      for (const issue of issues) {
-        const tag =
-          issue.level === "error"
-            ? chalk.red("[error]")
-            : chalk.yellow("[warn]");
-        console.log(`${tag} ${issue.path} - ${issue.message}`);
+
+      const platforms: SupportedPlatform[] = options.allPlatforms
+        ? allPlatforms()
+        : [normalizePlatform(options.platform)];
+
+      for (const platform of platforms) {
+        const config = getPlatformConfig(platform);
+        console.log(chalk.bold(`\n[${config.label}] -> ${config.defaultDir}`));
+        const failures: string[] = [];
+        for (const item of targets) {
+          try {
+            const target = await installRegistrySkill(item.name, config.defaultDir, {
+              force: options.force,
+              dryRun: options.dryRun,
+            });
+            const prefix = options.dryRun ? chalk.gray("[dry-run]") : chalk.green("[installed]");
+            console.log(`${prefix} ${item.name} -> ${target}`);
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.log(`${chalk.red("[failed]")} ${item.name}: ${msg}`);
+            failures.push(item.name);
+          }
+        }
+        if (failures.length) {
+          console.log(chalk.red(`\n${failures.length} 个技能安装失败: ${failures.join(", ")}`));
+        }
       }
     });
 
   program
     .command("where")
     .argument("<platform>", "cursor|claude-code|codex")
-    .action(async (platformName) => {
+    .description("显示平台的技能安装路径")
+    .action(async (platformName: string) => {
       const platform = normalizePlatform(platformName);
       const result = await detectPlatformPath(platform);
       console.log(`${result.label}: ${result.defaultDir}`);
@@ -190,58 +201,15 @@ async function run() {
     });
 
   program
-    .command("install")
-    .argument("[names...]", "仅安装指定技能名称（默认安装全部）")
-    .option("--platform <platform>", "目标平台 cursor|claude-code|codex")
-    .option("--all-platforms", "安装到全部平台", false)
-    .option("--skills-dir <dir>", "技能目录根路径", process.cwd())
-    .option("--target-dir <dir>", "覆盖目标目录（用于单个平台）")
-    .option("--force", "覆盖已存在目录", false)
-    .option("--dry-run", "只预览不写入", false)
-    .action(async (names, options) => {
-      const sourceRoot = cwdOr(options.skillsDir);
-      const selectedSkills = await resolveSkillsByNames(sourceRoot, names);
-      const skillDirs = [...new Set(selectedSkills.map((item) => join(sourceRoot, item.directory)))];
-      if (!skillDirs.length) {
-        console.log(chalk.yellow("没有可安装的技能。"));
-        return;
-      }
-
-      const selectedPlatforms: SupportedPlatform[] = options.allPlatforms
-        ? allPlatforms()
-        : [normalizePlatform(options.platform || "cursor")];
-
-      for (const platform of selectedPlatforms) {
-        const platformConfig = getPlatformConfig(platform);
-        const targetRoot = options.targetDir
-          ? cwdOr(options.targetDir)
-          : platformConfig.defaultDir;
-        console.log(chalk.bold(`\n[${platformConfig.label}] -> ${targetRoot}`));
-        for (const sourceDir of skillDirs) {
-          const target = await installSkillDirectory(sourceDir, targetRoot, {
-            force: options.force,
-            dryRun: options.dryRun,
-          });
-          const prefix = options.dryRun ? "[dry-run]" : "[copied]";
-          console.log(`${prefix} ${sourceDir} -> ${target}`);
-        }
-      }
-    });
-
-  program
     .command("auth")
-    .description("owner 双因子认证辅助")
+    .description("所有者双因子认证")
     .addCommand(
       new Command("init")
-        .option("--token <token>", "初始化 token，未传则自动生成")
+        .option("--token <token>", "初始化 token（未传则自动生成）")
         .action(async (options) => {
           const result = await initOwnerToken(options.token);
           console.log(chalk.green(`已写入 token hash: ${result.tokenFile}`));
-          console.log(
-            chalk.yellow(
-              "请将以下 token 保存到安全位置，并在上传前导出 SKILLS_OWNER_TOKEN:",
-            ),
-          );
+          console.log(chalk.yellow("请保存以下 token，并在上传前导出 SKILLS_OWNER_TOKEN:"));
           console.log(result.token);
         }),
     )
@@ -263,14 +231,12 @@ async function run() {
 
   program
     .command("upload")
-    .option("--source <path>", "本地 source 路径（SKILL.md 或目录）")
-    .option("--name <name>", "目标 skill 名称")
-    .option("--content-file <path>", "从文件读取正文并上传")
-    .option("--skills-dir <dir>", "技能目录根路径", process.cwd())
-    .option("--rename <name>", "冲突时指定重命名")
-    .option("--on-conflict <mode>", "冲突策略: error|rename|overwrite", "error")
+    .description("上传技能到 registry（仅所有者）")
+    .option("--source <path>", "技能目录或 SKILL.md 文件路径")
+    .option("--content-file <path>", "从文件读取内容上传")
+    .option("--name <name>", "技能名称（无法推断时使用）")
     .option("--force", "冲突时覆盖", false)
-    .option("--dry-run", "预览模式", false)
+    .option("--dry-run", "预览，不实际写入", false)
     .action(async (options) => {
       const auth = await ensureOwnerAccess();
       if (!auth.ok) {
@@ -278,12 +244,7 @@ async function run() {
         process.exitCode = 1;
         return;
       }
-      if (!["error", "rename", "overwrite"].includes(options.onConflict)) {
-        throw new Error("on-conflict 仅支持 error|rename|overwrite");
-      }
 
-      const rootDir = cwdOr(options.skillsDir);
-      const baseDir = await resolveSkillBaseDir(rootDir);
       let targetName = options.name as string | undefined;
       let content = "";
 
@@ -293,53 +254,50 @@ async function run() {
         const sourcePath = cwdOr(options.source);
         const stat = await fs.stat(sourcePath);
         if (stat.isDirectory()) {
-          const skillPath = join(sourcePath, "SKILL.md");
-          content = await readFile(skillPath, "utf8");
+          content = await readFile(join(sourcePath, "SKILL.md"), "utf8");
           targetName = targetName || basename(sourcePath);
         } else {
           content = await readFile(sourcePath, "utf8");
           targetName = targetName || basename(dirname(sourcePath));
         }
       } else {
-        throw new Error("请至少提供 --source 或 --content-file");
+        throw new Error("请提供 --source 或 --content-file");
       }
 
-      if (!targetName) {
-        throw new Error("无法推断技能名称，请使用 --name 指定");
-      }
+      if (!targetName) throw new Error("无法推断技能名称，请使用 --name 指定");
+      if (!content.includes("---")) throw new Error("内容缺少 frontmatter");
 
-      if (!content.includes("---")) {
-        throw new Error("内容缺少 frontmatter");
-      }
-
-      let finalName = targetName;
-      const initialTarget = join(baseDir, finalName, "SKILL.md");
-      const exists = await fs.pathExists(initialTarget);
-      if (exists) {
-        if (options.rename) {
-          finalName = options.rename;
-        } else if (options.force || options.onConflict === "overwrite") {
-          finalName = targetName;
-        } else if (options.onConflict === "rename") {
-          finalName = await resolveConflictName(baseDir, targetName);
-        } else {
-          throw new Error(
-            `目标已存在: ${initialTarget}，请使用 --rename/--on-conflict rename 或 --force`,
-          );
-        }
-      }
-
-      const finalPath = join(baseDir, finalName, "SKILL.md");
       if (options.dryRun) {
-        console.log(`[dry-run] upload -> ${finalPath}`);
+        console.log(`[dry-run] upload -> skills/${targetName}/SKILL.md`);
         return;
       }
 
-      await fs.ensureDir(join(baseDir, finalName));
-      await writeFile(finalPath, content, "utf8");
-      const doc = await loadSkillFromFile(rootDir, finalPath);
-      console.log(chalk.green(`上传成功: ${doc.name}`));
-      console.log(chalk.gray(finalPath));
+      const token = await getGithubToken();
+      if (!token) {
+        console.error(chalk.red("未获取到 GitHub token，请设置 GITHUB_TOKEN 或执行 gh auth login"));
+        process.exitCode = 1;
+        return;
+      }
+
+      process.stdout.write(chalk.gray(`正在推送 ${targetName} 到 registry...`));
+      await pushSkillToRegistry(targetName, content, token);
+      console.log(chalk.green(" 完成"));
+    });
+
+  program
+    .command("doctor")
+    .description("校验本地技能文件（所有者用）")
+    .option("--skills-dir <dir>", "技能目录根路径", process.cwd())
+    .action(async (options) => {
+      const issues = await doctorSkills(cwdOr(options.skillsDir));
+      if (!issues.length) {
+        console.log(chalk.green("检查完成，没有发现问题。"));
+        return;
+      }
+      for (const issue of issues) {
+        const tag = issue.level === "error" ? chalk.red("[error]") : chalk.yellow("[warn]");
+        console.log(`${tag} ${issue.path} - ${issue.message}`);
+      }
     });
 
   await program.parseAsync(process.argv);

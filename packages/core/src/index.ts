@@ -1,5 +1,5 @@
 import fg from "fast-glob";
-import { dirname, relative, resolve } from "node:path";
+import { basename, dirname, relative, resolve } from "node:path";
 import { readFile } from "node:fs/promises";
 import matter from "gray-matter";
 import type { SkillDoc, SkillMeta, SkillValidationIssue } from "./types.js";
@@ -25,6 +25,21 @@ function parseMarkdown(filePath: string, raw: string, rootDir: string): SkillDoc
     directory,
     content: parsed.content.trim(),
     raw
+  };
+}
+
+export function parseSkillContent(raw: string, nameHint = "unknown"): SkillDoc {
+  const parsed = matter(raw);
+  const meta = parsed.data as Partial<SkillMeta>;
+  const name = meta.name?.trim() || nameHint;
+  const description = meta.description?.toString().trim() || "No description";
+  return {
+    name,
+    description,
+    relativePath: "",
+    directory: "",
+    content: parsed.content.trim(),
+    raw,
   };
 }
 
@@ -59,22 +74,24 @@ export async function loadSkillByName(rootDir: string, name: string): Promise<Sk
   const wanted = normalizeSkillName(name);
   const files = await discoverSkillFiles(rootDir);
 
+  // Fast path: match by directory name without reading file contents
+  const byDir = files.find((f) => normalizeSkillName(basename(dirname(f))) === wanted);
+  if (byDir) return loadSkillFromFile(rootDir, byDir);
+
+  // Slow path: match by frontmatter name (early exit on first match)
   for (const filePath of files) {
     const doc = await loadSkillFromFile(rootDir, filePath);
-    if (normalizeSkillName(doc.name) === wanted || normalizeSkillName(doc.directory) === wanted) {
-      return doc;
-    }
+    if (normalizeSkillName(doc.name) === wanted) return doc;
   }
 
   return null;
 }
 
-export function searchSkills(index: SkillMeta[], query: string): SkillMeta[] {
+export function searchSkills<T extends { name: string; description: string }>(index: T[], query: string): T[] {
   const keyword = normalizeSkillName(query);
-  return index.filter((item) => {
-    const haystack = `${item.name} ${item.description} ${item.relativePath}`.toLowerCase();
-    return haystack.includes(keyword);
-  });
+  return index.filter((item) =>
+    `${item.name} ${item.description}`.toLowerCase().includes(keyword),
+  );
 }
 
 export function validateSkillDocument(doc: SkillDoc): SkillValidationIssue[] {

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "commit",
+    "description": "生成 git 提交信息并创建提交。当你想暂存更改并使用自动生成的 Conventional Commits 格式提交时使用。可选传入提示，例如 /commit fix auth bug。支持通过 --lang=<code> 指定提交信息语言，例如 /commit --lang=en fix auth bug。"
+  },
+  {
+    "name": "create-skill",
+    "description": "创建新 skill、修改和改进已有 skill、衡量 skill 性能。当用户想从零创建一个 skill、更新或优化现有 skill、运行评估测试、进行带方差分析的性能基准测试，或优化 skill 描述以提升触发准确率时使用。"
+  },
+  {
+    "name": "fe-project-init",
+    "description": "此 skill 应在用户说\"初始化前端规范\"、\"为前端项目生成规范\"、\"生成前端 CLAUDE.md\"、\"帮我配置前端项目规范\"、\"分析前端项目\"时使用。深度分析当前前端项目的实际代码，生成 CLAUDE.md 项目理解文档，并创建基于真实代码风格的 fe-best-practices skill（含分域 rules 文件）。"
+  },
+  {
+    "name": "find-docs",
+    "description": "使用 Context7 CLI 获取任意开发技术的最新文档、API 参考和代码示例。 当用户询问具体的库、框架、SDK、CLI 工具或云服务时都应使用本 skill （包括 React、Next.js、Prisma、Express、Tailwind、Django、Spring Boot 等常见技术）。训练数据可能无法反映近期 API 变更或版本更新。\n以下场景必须优先使用：API 语法问题、配置项问题、版本迁移问题、包含库名的 “如何实现”问题、涉及库特定行为的调试、安装/初始化说明、CLI 使用方式。\n即使你认为自己知道答案，也不要直接依赖训练数据来回答 API 细节、函数签名 或配置项；这些内容经常过时。请始终以最新官方文档为准。对于库文档和 API 细节， 优先使用本 skill 而不是普通网页搜索。"
+  },
+  {
+    "name": "generate-readme",
+    "description": "此 skill 应在用户说\"生成 README\"、\"创建 README\"、\"写 README\"、\"generate readme\"、\"create readme\"、\"帮我写 README\"、\"为项目生成文档\"时使用。同时生成英文 README.md 和中文 README.zh.md，两个文件相互引用，默认语言为英文。"
+  },
+  {
+    "name": "publish",
+    "description": "发布 npm 包到 registry 的完整工作流。当用户说\"发布\"、\"publish\"、\"release\"、 \"发版\"、\"出新版\"、\"上传到 npm\"、\"npm publish\"、\"打包发布\"、\"发 release\" 等时使用。自动处理构建校验、版本升级、git 提交、打 tag、推送、发布全流程。 适用于独立包和 monorepo 子包。"
+  }
+]

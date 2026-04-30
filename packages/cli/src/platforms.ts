@@ -1,7 +1,5 @@
-import { access, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
-import { constants } from "node:fs";
 import fs from "fs-extra";
 
 export type SupportedPlatform = "cursor" | "claude-code" | "codex";
@@ -54,7 +52,7 @@ export async function detectPlatformPath(platform: SupportedPlatform) {
   const exists = await fs.pathExists(config.defaultDir);
   if (exists) {
     try {
-      await access(config.defaultDir, constants.W_OK);
+      await fs.access(config.defaultDir, fs.constants.W_OK);
       return { ...config, exists: true, writable: true, note: "目录存在且可写" } satisfies PlatformDetectionResult;
     } catch {
       return {
@@ -82,7 +80,7 @@ export async function installSkillDirectory(
   const skillName = basename(sourceDir);
   const targetPath = join(targetRoot, skillName);
   if (!options.dryRun) {
-    await mkdir(targetRoot, { recursive: true });
+    await fs.ensureDir(targetRoot);
     await fs.copy(sourceDir, targetPath, {
       overwrite: options.force ?? false,
       errorOnExist: !(options.force ?? false)

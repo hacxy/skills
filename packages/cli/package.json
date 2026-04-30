@@ -1,6 +1,6 @@
 {
-  "name": "@skills/cli",
-  "version": "1.0.0",
+  "name": "@hacxy/skills",
+  "version": "0.0.0",
   "description": "CLI for managing and installing skills across Cursor, Claude Code, and Codex.",
   "main": "dist/index.js",
   "exports": {
@@ -10,10 +10,10 @@
     }
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/index.ts",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "bump": "bump"
   },
   "keywords": [
     "skills",
@@ -22,8 +22,8 @@
     "codex",
     "cli"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "hacxy",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "skills": "dist/index.js"
@@ -39,9 +39,11 @@
     "@skills/core": "^1.0.0",
     "chalk": "^5.6.2",
     "commander": "^14.0.3",
-    "fs-extra": "^11.3.4"
+    "fs-extra": "^11.3.4",
+    "gray-matter": "^4.0.3"
   },
   "devDependencies": {
+    "@hacxy/bump": "^0.3.2",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^25.6.0",
     "tsx": "^4.21.0",

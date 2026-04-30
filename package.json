@@ -5,8 +5,10 @@
   "main": "index.js",
   "scripts": {
     "build": "npm run -w packages/core build && npm run -w packages/cli build && npm run -w apps/web build",
+    "build:registry": "node scripts/build-registry.mjs",
     "dev:web": "npm run -w apps/web dev",
-    "dev:cli": "npm run -w packages/cli dev"
+    "dev:cli": "npm run -w packages/cli dev",
+    "bump": "npm run -w packages/cli bump"
   },
   "repository": {
     "type": "git",
@@ -14,7 +16,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "module",
   "bugs": {
     "url": "https://github.com/hacxy/skills/issues"
