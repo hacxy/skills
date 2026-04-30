@@ -1,3 +1,11 @@
+## [0.0.3](https://github.com/hacxy/skills/compare/v0.0.2...v0.0.3) (2026-04-30)
+
+
+### Features
+
+* **web:** 新增 skill 终端动画组件并修复安装命令空格缺失 ([190cd2a](https://github.com/hacxy/skills/commit/190cd2abb988b884380747f58859f0c5bfc0dee8))
+* **web:** 重构页面布局，新增主题切换、GitHub实时数据获取及ESLint配置 ([e43032f](https://github.com/hacxy/skills/commit/e43032f43a3473c590e03be4128b992acf6b256a))
+
 ## 0.0.2 (2026-04-30)
 
 
