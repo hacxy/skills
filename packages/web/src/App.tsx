@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { marked } from "marked";
 import { HomePage } from "./HomePage";
+import { TerminalAnimation } from "./TerminalAnimation";
 
 const RAW_BASE = "https://raw.githubusercontent.com/hacxy/skills/main";
 
@@ -390,7 +391,7 @@ export function App() {
                         </span>
                         <span className="skill-card-cmd">
                           <Icon icon="lucide:terminal" width="11" height="11" />
-                          npx @hacxy/skills install{skill.name}
+                          npx @hacxy/skills install {skill.name}
                         </span>
                       </motion.button>
                     ))}
@@ -434,9 +435,11 @@ export function App() {
                     <h1 className="doc-title">{selectedDoc.name}</h1>
                     <p className="doc-desc">{selectedDoc.description}</p>
 
+                    <TerminalAnimation skillName={selectedDoc.name} />
+
                     <div className="install-box">
                       <span className="install-box-label">安装</span>
-                      <code>npx @hacxy/skills install{selectedDoc.name}</code>
+                      <code>npx @hacxy/skills install {selectedDoc.name}</code>
                       <button
                         className="copy-btn"
                         onClick={() => void copyInstallCmd(selectedDoc.name)}
