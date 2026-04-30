@@ -14,7 +14,7 @@ import {
   installSkillDirectory,
   type SupportedPlatform,
 } from "./platforms.js";
-import { ensureOwnerAccess, getOwnerConfig, initOwnerToken } from "./auth.js";
+import { ensureOwnerAccess } from "./auth.js";
 import {
   fetchRegistryIndex,
   fetchSkillContent,
@@ -139,6 +139,7 @@ async function run() {
     .description("从 registry 下载并安装技能")
     .option("--platform <platform>", "目标平台 cursor|claude-code|codex", "claude-code")
     .option("--all-platforms", "安装到所有平台", false)
+    .option("--dir <path>", "安装到指定目录（覆盖平台默认路径）")
     .option("--force", "覆盖已存在的技能", false)
     .option("--dry-run", "预览，不实际写入", false)
     .action(async (names: string[], options) => {
@@ -157,6 +158,30 @@ async function run() {
 
       if (!targets.length) {
         console.log(chalk.yellow("Registry 中暂无技能。"));
+        return;
+      }
+
+      if (options.dir) {
+        const targetRoot = resolve(options.dir as string);
+        console.log(chalk.bold(`\n[custom] -> ${targetRoot}`));
+        const failures: string[] = [];
+        for (const item of targets) {
+          try {
+            const target = await installRegistrySkill(item.name, targetRoot, {
+              force: options.force,
+              dryRun: options.dryRun,
+            });
+            const prefix = options.dryRun ? chalk.gray("[dry-run]") : chalk.green("[installed]");
+            console.log(`${prefix} ${item.name} -> ${target}`);
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.log(`${chalk.red("[failed]")} ${item.name}: ${msg}`);
+            failures.push(item.name);
+          }
+        }
+        if (failures.length) {
+          console.log(chalk.red(`\n${failures.length} 个技能安装失败: ${failures.join(", ")}`));
+        }
         return;
       }
 
@@ -202,29 +227,16 @@ async function run() {
 
   program
     .command("auth")
-    .description("所有者双因子认证")
-    .addCommand(
-      new Command("init")
-        .option("--token <token>", "初始化 token（未传则自动生成）")
-        .action(async (options) => {
-          const result = await initOwnerToken(options.token);
-          console.log(chalk.green(`已写入 token hash: ${result.tokenFile}`));
-          console.log(chalk.yellow("请保存以下 token，并在上传前导出 SKILLS_OWNER_TOKEN:"));
-          console.log(result.token);
-        }),
-    )
+    .description("查看上传权限状态")
     .addCommand(
       new Command("status").action(async () => {
-        const owner = getOwnerConfig();
         const status = await ensureOwnerAccess();
-        console.log(`owner=${owner.ownerGithub}`);
-        console.log(`github=${status.githubOk} token=${status.tokenOk}`);
-        console.log(`currentGithub=${status.githubUser || "unknown"}`);
+        console.log(`token=${status.tokenOk}`);
         if (!status.ok) {
           console.log(chalk.red(status.reason || "未通过校验"));
           process.exitCode = 1;
         } else {
-          console.log(chalk.green("双因子校验通过"));
+          console.log(chalk.green("校验通过，可以上传"));
         }
       }),
     );

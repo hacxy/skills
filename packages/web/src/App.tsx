@@ -41,9 +41,7 @@ interface SkillDoc extends SkillMeta {
 
 interface AuthStatus {
   canUpload: boolean;
-  githubOk: boolean;
   tokenOk: boolean;
-  currentGithub?: string;
   reason?: string;
 }
 
@@ -94,9 +92,6 @@ export function App() {
   const [uploadContent, setUploadContent] = useState("");
   const [uploadMessage, setUploadMessage] = useState("");
   const [uploadOk, setUploadOk] = useState(false);
-  const [onConflict, setOnConflict] = useState<
-    "error" | "rename" | "overwrite"
-  >("rename");
   const [copied, setCopied] = useState(false);
   const [copiedInstall, setCopiedInstall] = useState(false);
 
@@ -239,7 +234,6 @@ export function App() {
       body: JSON.stringify({
         name: uploadName,
         content: uploadContent,
-        onConflict,
       }),
     });
     const data = (await res.json()) as { ok: boolean; message: string };
@@ -496,18 +490,6 @@ export function App() {
                     onChange={(e) => setUploadContent(e.target.value)}
                     placeholder="粘贴 SKILL.md 内容"
                   />
-                  <select
-                    value={onConflict}
-                    onChange={(e) =>
-                      setOnConflict(
-                        e.target.value as "error" | "rename" | "overwrite",
-                      )
-                    }
-                  >
-                    <option value="rename">冲突时自动重命名</option>
-                    <option value="overwrite">冲突时覆盖</option>
-                    <option value="error">冲突时报错</option>
-                  </select>
                   <button
                     className="upload-btn"
                     onClick={() => void uploadSkill()}
