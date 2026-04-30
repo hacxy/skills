@@ -1,0 +1,23 @@
+{
+  "skill_name": "fe-i18n",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我有一个 React + Vite 项目，现在想加上中英文切换功能。项目里有几个组件，按钮和标题都是硬编码的中文，比如 '保存'、'取消'、'欢迎使用'。帮我把 i18n 集成进去，支持中文和英文。",
+      "expected_output": "安装 react-i18next，创建 src/locales/zh-CN.ts 和 en.ts 语言文件，创建 i18n 配置，改造组件中的硬编码文本，提供语言切换组件代码",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "我在用 Next.js 14 App Router 做一个面向海外用户的产品，需要支持中文和英文两种语言。现在所有文字都是硬编码的，需要完整的 i18n 方案，包括路由国际化。",
+      "expected_output": "安装 next-intl，创建 [locale] 动态路由结构，配置 middleware.ts，创建语言文件，改造 Server Component 和 Client Component 中的翻译调用",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Vue 3 项目想加多语言支持，目前只有中文，想加上英文和日文。用 vue-i18n 应该怎么做？帮我搭起来，然后把 src/components/Header.vue 里的文字也换成 t() 调用，里面有'首页'、'关于我们'、'联系我们'这几个导航项。",
+      "expected_output": "安装 vue-i18n，创建三种语言文件（zh-CN/en/ja），配置 i18n 实例并在 main.ts 注册，改造 Header.vue 组件",
+      "files": []
+    }
+  ]
+}

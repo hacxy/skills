@@ -30,6 +30,17 @@
     ]
   },
   {
+    "name": "fe-i18n",
+    "description": "为前端项目集成多语言国际化（i18n）的完整工作流。当用户提到\"国际化\"、\"多语言\"、\"i18n\"、\"添加中文/英文支持\"、\"语言切换\"、\"翻译\"、\"locale\"、\"l10n\"，或者想让项目支持多种语言时，务必使用此 skill。支持 React、Next.js、Vue、Nuxt 等主流框架，自动检测项目类型并选择最合适的 i18n 方案，完成从安装依赖到改造现有组件的全流程集成。",
+    "files": [
+      "SKILL.md",
+      "evals/evals.json",
+      "references/next-intl.md",
+      "references/react-i18next.md",
+      "references/vue-i18n.md"
+    ]
+  },
+  {
     "name": "fe-project-init",
     "description": "此 skill 应在用户说\"初始化前端规范\"、\"为前端项目生成规范\"、\"生成前端 CLAUDE.md\"、\"帮我配置前端项目规范\"、\"分析前端项目\"时使用。深度分析当前前端项目的实际代码，生成 CLAUDE.md 项目理解文档，并创建基于真实代码风格的 fe-best-practices skill（含分域 rules 文件）。",
     "files": [
