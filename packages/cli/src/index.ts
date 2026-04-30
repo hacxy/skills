@@ -6,7 +6,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 import fs from "fs-extra";
-import { doctorSkills, parseSkillContent, searchSkills } from "@skills/core";
+import { doctorSkills, parseSkillContent, searchSkills } from "./core.js";
 import {
   allPlatforms,
   detectPlatformPath,

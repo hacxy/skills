@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npm run -w packages/core build && npm run -w packages/cli build && npm run -w apps/web build",
+    "build": "npm run -w packages/cli build && npm run -w packages/web build",
     "build:registry": "node scripts/build-registry.mjs",
-    "dev:web": "npm run -w apps/web dev",
+    "dev:web": "npm run -w packages/web dev",
     "dev:cli": "npm run -w packages/cli dev",
     "bump": "npm run -w packages/cli bump"
   },
@@ -24,8 +24,7 @@
   "homepage": "https://github.com/hacxy/skills#readme",
   "private": true,
   "workspaces": [
-    "packages/*",
-    "apps/*"
+    "packages/*"
   ],
   "devDependencies": {
     "typescript": "^6.0.3"

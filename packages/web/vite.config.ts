@@ -8,7 +8,7 @@ import { promisify } from "node:util";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import fs from "fs-extra";
-import { buildSkillIndex, loadSkillByName, loadSkillFromFile } from "../../packages/core/src/index.js";
+import { buildSkillIndex, loadSkillByName, loadSkillFromFile } from "../cli/src/core.js";
 
 const execFileAsync = promisify(execFile);
 const ownerGithub = process.env.SKILLS_OWNER_GITHUB || "hacxy";
