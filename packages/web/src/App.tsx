@@ -2,8 +2,10 @@ import { Icon } from "@iconify/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { marked } from "marked";
+import { useTranslation } from "react-i18next";
 import { HomePage } from "./HomePage";
 import { TerminalAnimation } from "./TerminalAnimation";
+import { Navbar } from "./Navbar";
 
 const RAW_BASE = "https://raw.githubusercontent.com/hacxy/skills/main";
 
@@ -77,6 +79,7 @@ const contentVariants = {
 };
 
 export function App() {
+  const { t } = useTranslation();
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     const saved = localStorage.getItem("theme");
     return saved === "light" ? "light" : "dark";
@@ -260,6 +263,7 @@ export function App() {
             onBrowse={() => navigateTo("explorer")}
             theme={theme}
             onToggleTheme={toggleTheme}
+            onLogoClick={() => navigateTo("home")}
           />
         </motion.div>
       </AnimatePresence>
@@ -279,36 +283,13 @@ export function App() {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
       >
-        {/* Header */}
-        <header className="explorer-header">
-          <button className="logo" onClick={() => navigateTo("home")}>
-            <Icon icon="lucide:zap" width="18" height="18" color="#6366f1" />
-            <span>Skills</span>
-          </button>
-          {showDetail && (
-            <motion.button
-              className="back-btn"
-              onClick={goBack}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Icon icon="lucide:arrow-left" width="15" height="15" />
-              返回列表
-            </motion.button>
-          )}
-          <button
-            className="theme-toggle"
-            onClick={toggleTheme}
-            title={theme === "dark" ? "切换浅色" : "切换深色"}
-          >
-            <Icon
-              icon={theme === "dark" ? "lucide:sun" : "lucide:moon"}
-              width="15"
-              height="15"
-            />
-          </button>
-        </header>
+        <Navbar
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onLogoClick={() => navigateTo("home")}
+          showBack={showDetail}
+          onBack={goBack}
+        />
 
         <AnimatePresence mode="wait">
           {!showDetail ? (
@@ -334,7 +315,7 @@ export function App() {
                     className="explorer-search"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="搜索 skill 名称或描述..."
+                    placeholder={t("explorer.searchPlaceholder")}
                     autoFocus
                   />
                   {query && (
@@ -347,7 +328,7 @@ export function App() {
                   )}
                 </div>
                 {query && (
-                  <p className="search-hint">找到 {filtered.length} 个结果</p>
+                  <p className="search-hint">{t("explorer.searchResults", { count: filtered.length })}</p>
                 )}
               </div>
 
@@ -361,7 +342,7 @@ export function App() {
               ) : filtered.length === 0 ? (
                 <div className="grid-empty">
                   <Icon icon="lucide:search-x" width="40" height="40" />
-                  <p>未找到 &ldquo;{query}&rdquo;</p>
+                  <p>{t("explorer.notFound", { query })}</p>
                 </div>
               ) : (
                 <motion.div
@@ -432,7 +413,7 @@ export function App() {
                     <TerminalAnimation skillName={selectedDoc.name} />
 
                     <div className="install-box">
-                      <span className="install-box-label">安装</span>
+                      <span className="install-box-label">{t("explorer.install")}</span>
                       <code>npx @hacxy/skills install {selectedDoc.name}</code>
                       <button
                         className="copy-btn"
@@ -443,7 +424,7 @@ export function App() {
                           width="13"
                           height="13"
                         />
-                        {copiedInstall ? "已复制" : "复制"}
+                        {copiedInstall ? t("explorer.copied") : t("explorer.copy")}
                       </button>
                     </div>
 
@@ -458,7 +439,7 @@ export function App() {
                           width="13"
                           height="13"
                         />
-                        {copied ? "已复制" : "复制链接"}
+                        {copied ? t("explorer.copied") : t("explorer.copyLink")}
                       </button>
                     </div>
 
@@ -479,22 +460,22 @@ export function App() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.25 }}
                 >
-                  <h3 className="upload-title">上传 Skill</h3>
+                  <h3 className="upload-title">{t("explorer.upload.title")}</h3>
                   <input
                     value={uploadName}
                     onChange={(e) => setUploadName(e.target.value)}
-                    placeholder="skill 名称"
+                    placeholder={t("explorer.upload.namePlaceholder")}
                   />
                   <textarea
                     value={uploadContent}
                     onChange={(e) => setUploadContent(e.target.value)}
-                    placeholder="粘贴 SKILL.md 内容"
+                    placeholder={t("explorer.upload.contentPlaceholder")}
                   />
                   <button
                     className="upload-btn"
                     onClick={() => void uploadSkill()}
                   >
-                    上传
+                    {t("explorer.upload.submit")}
                   </button>
                   {uploadMessage && (
                     <p className={uploadOk ? "msg-ok" : "msg-err"}>

@@ -1,11 +1,14 @@
 import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Navbar } from "./Navbar";
 
 interface Props {
   onBrowse: () => void;
   theme: "light" | "dark";
   onToggleTheme: () => void;
+  onLogoClick: () => void;
 }
 
 function TypewriterText({ text, speed = 18, delay = 0 }: { text: string; speed?: number; delay?: number }) {
@@ -43,24 +46,6 @@ function TypewriterText({ text, speed = 18, delay = 0 }: { text: string; speed?:
   );
 }
 
-const features = [
-  {
-    icon: "lucide:search",
-    title: "浏览与搜索",
-    desc: "快速检索所有技能的名称和描述，实时过滤结果。",
-  },
-  {
-    icon: "lucide:download",
-    title: "一键安装",
-    desc: "通过 CLI 一条命令安装到 Claude Code、Cursor、Codex 或 Trae。",
-  },
-  {
-    icon: "lucide:refresh-cw",
-    title: "实时同步",
-    desc: "直接从 GitHub 仓库实时拉取，新增技能立即可见。",
-  },
-];
-
 const containerVariants = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.12 } },
@@ -73,8 +58,27 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } },
 };
 
-export function HomePage({ onBrowse, theme, onToggleTheme }: Props) {
+export function HomePage({ onBrowse, theme, onToggleTheme, onLogoClick }: Props) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
+
+  const features = [
+    {
+      icon: "lucide:search",
+      title: t("features.search.title"),
+      desc: t("features.search.desc"),
+    },
+    {
+      icon: "lucide:download",
+      title: t("features.install.title"),
+      desc: t("features.install.desc"),
+    },
+    {
+      icon: "lucide:refresh-cw",
+      title: t("features.sync.title"),
+      desc: t("features.sync.desc"),
+    },
+  ];
 
   async function copyInstall() {
     await navigator.clipboard.writeText("npx @hacxy/skills");
@@ -84,30 +88,17 @@ export function HomePage({ onBrowse, theme, onToggleTheme }: Props) {
 
   return (
     <div className="home">
-      {/* Navbar */}
-      <nav className="home-nav">
-        <div className="home-logo">
-          <Icon icon="lucide:zap" width="20" height="20" color="#6366f1" />
-          <span>Skills</span>
-        </div>
-        <div className="home-nav-right">
-          <button className="theme-toggle" onClick={onToggleTheme} title={theme === "dark" ? "切换浅色" : "切换深色"}>
-            <Icon icon={theme === "dark" ? "lucide:sun" : "lucide:moon"} width="16" height="16" />
-          </button>
-          <a
-            href="https://github.com/hacxy/skills"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="nav-link"
-          >
-            <Icon icon="mdi:github" width="18" height="18" />
-          </a>
+      <Navbar
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+        onLogoClick={onLogoClick}
+        rightSlot={
           <button className="btn-outline" onClick={onBrowse}>
-            浏览技能
+            {t("nav.browseSkills")}
             <Icon icon="lucide:arrow-right" width="14" height="14" />
           </button>
-        </div>
-      </nav>
+        }
+      />
 
       {/* Hero */}
       <section className="home-hero">
@@ -119,16 +110,16 @@ export function HomePage({ onBrowse, theme, onToggleTheme }: Props) {
         >
           <motion.div variants={itemVariants} className="hero-badge">
             <Icon icon="lucide:zap" width="12" height="12" />
-            AI 编程工具集
+            {t("hero.badge")}
           </motion.div>
 
           <motion.h1 variants={itemVariants} className="hero-title">
-            AI 助手技能集
+            {t("hero.title")}
           </motion.h1>
 
           <motion.p variants={itemVariants} className="hero-desc">
             <TypewriterText
-              text="精选 AI 编程技能集，一条命令安装到 Claude Code、Cursor、Codex 或 Trae，立即增强你的工作流。"
+              text={t("hero.desc")}
               speed={20}
               delay={700}
             />
@@ -148,7 +139,7 @@ export function HomePage({ onBrowse, theme, onToggleTheme }: Props) {
 
           <motion.div variants={itemVariants} className="hero-actions">
             <button className="btn-primary" onClick={onBrowse}>
-              浏览技能
+              {t("nav.browseSkills")}
               <Icon icon="lucide:arrow-right" width="15" height="15" />
             </button>
             <a
@@ -158,7 +149,7 @@ export function HomePage({ onBrowse, theme, onToggleTheme }: Props) {
               className="btn-ghost"
             >
               <Icon icon="mdi:github" width="16" height="16" />
-              查看源码
+              {t("hero.viewSource")}
             </a>
           </motion.div>
         </motion.div>
@@ -177,7 +168,7 @@ export function HomePage({ onBrowse, theme, onToggleTheme }: Props) {
           viewport={{ once: true, margin: "-60px" }}
         >
           {features.map((f) => (
-            <motion.div key={f.title} className="feature-card" variants={itemVariants}>
+            <motion.div key={f.icon} className="feature-card" variants={itemVariants}>
               <div className="feature-icon">
                 <Icon icon={f.icon} width="20" height="20" />
               </div>
@@ -197,7 +188,7 @@ export function HomePage({ onBrowse, theme, onToggleTheme }: Props) {
           viewport={{ once: true }}
           transition={{ duration: 0.4 }}
         >
-          <h2 className="usage-title">快速开始</h2>
+          <h2 className="usage-title">{t("usage.title")}</h2>
           <div className="code-block">
             <pre>{`# 推荐：免安装直接使用
 npx @hacxy/skills list
@@ -218,7 +209,7 @@ skills install commit`}</pre>
       {/* Footer */}
       <footer className="home-footer">
         <p>
-          开源项目 ·{" "}
+          {t("footer.openSource")} ·{" "}
           <a href="https://github.com/hacxy/skills" target="_blank" rel="noopener noreferrer">
             hacxy/skills
           </a>
