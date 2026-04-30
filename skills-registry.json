@@ -18,9 +18,5 @@
   {
     "name": "generate-readme",
     "description": "此 skill 应在用户说\"生成 README\"、\"创建 README\"、\"写 README\"、\"generate readme\"、\"create readme\"、\"帮我写 README\"、\"为项目生成文档\"时使用。同时生成英文 README.md 和中文 README.zh.md，两个文件相互引用，默认语言为英文。"
-  },
-  {
-    "name": "publish",
-    "description": "发布 npm 包到 registry 的完整工作流。当用户说\"发布\"、\"publish\"、\"release\"、 \"发版\"、\"出新版\"、\"上传到 npm\"、\"npm publish\"、\"打包发布\"、\"发 release\" 等时使用。自动处理构建校验、版本升级、git 提交、打 tag、推送、发布全流程。 适用于独立包和 monorepo 子包。"
   }
 ]
