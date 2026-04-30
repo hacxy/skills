@@ -1,11 +1,28 @@
 import { existsSync } from "node:fs";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { buildSkillIndex, loadSkillByName } from "../cli/src/core.js";
 import { getGithubToken, pushSkillDirectory } from "../cli/src/registry.js";
+
+async function listSkillFiles(skillDir: string, baseDir: string): Promise<string[]> {
+  const results: string[] = [];
+  async function walk(dir: string) {
+    const entries = await readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(full);
+      } else {
+        results.push(relative(baseDir, full).replace(/\\/g, "/"));
+      }
+    }
+  }
+  await walk(skillDir);
+  return results.sort();
+}
 
 const projectRoot = resolve(process.env.SKILLS_ROOT || resolve(__dirname, "..", ".."));
 const skillsRoot = existsSync(join(projectRoot, "skills")) ? join(projectRoot, "skills") : projectRoot;
@@ -46,8 +63,15 @@ export default defineConfig({
 
           if (req.url === "/api/skills" && req.method === "GET") {
             const index = await buildSkillIndex(skillsRoot);
+            const withFiles = await Promise.all(
+              index.map(async (skill) => {
+                const skillDir = resolve(skillsRoot, skill.directory);
+                const files = await listSkillFiles(skillDir, skillDir);
+                return { ...skill, files };
+              }),
+            );
             res.setHeader("content-type", "application/json");
-            res.end(JSON.stringify(index));
+            res.end(JSON.stringify(withFiles));
             return;
           }
 
