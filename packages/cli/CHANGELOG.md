@@ -1,3 +1,20 @@
+## [0.0.5](https://github.com/hacxy/skills/compare/v0.0.4...v0.0.5) (2026-05-01)
+
+
+### Bug Fixes
+
+* **vite:** dev /api/skills 返回技能文件列表 ([0e6e25a](https://github.com/hacxy/skills/commit/0e6e25ae45c3d877e7757ca396b705748dffe0ec))
+* **web:** 修复 dev 文件加载接口、文件列表逻辑及 hero 居中样式 ([605e5c0](https://github.com/hacxy/skills/commit/605e5c0a248a95b78876b3b073279cb3f7d90edc))
+
+
+### Features
+
+* add skill fe-i18n ([a3a5ce7](https://github.com/hacxy/skills/commit/a3a5ce7979c0c8fac0cbe81f05e1534dcf32c807))
+* **web:** 为 skill 详情 markdown 添加逐行渐入动画 ([56e4d71](https://github.com/hacxy/skills/commit/56e4d714da45bc83a12de576b679907c6c290c26))
+* **web:** 新增多平台安装 tabs，移除上传功能，修复导航与 frontmatter 解析 ([3c3b351](https://github.com/hacxy/skills/commit/3c3b351db1fab2e28f4b2b56421c566c71d29c02))
+* **web:** 更新 footer 为 MIT 版权声明并在 explorer 页展示 ([3200c1e](https://github.com/hacxy/skills/commit/3200c1edfaf131026b146ff07091bd180ddbfa9f))
+* 新增 packages/manager 管理平台，支持 GitHub OAuth 登录及技能增删改 ([9b362cc](https://github.com/hacxy/skills/commit/9b362cc4c340dc9bbec86580663d0582dc0c70c6))
+
 ## [0.0.4](https://github.com/hacxy/skills/compare/v0.0.3...v0.0.4) (2026-04-30)
 
 
