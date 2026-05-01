@@ -62,5 +62,12 @@
     "files": [
       "SKILL.md"
     ]
+  },
+  {
+    "name": "npm-name",
+    "description": ">-",
+    "files": [
+      "SKILL.md"
+    ]
   }
 ]
