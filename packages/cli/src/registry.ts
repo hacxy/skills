@@ -11,7 +11,9 @@ export const REGISTRY_OWNER = "hacxy";
 export const REGISTRY_REPO = "skills";
 export const REGISTRY_BRANCH = "main";
 
-const RAW_BASE = `https://raw.githubusercontent.com/${REGISTRY_OWNER}/${REGISTRY_REPO}/${REGISTRY_BRANCH}`;
+const SERVER_BASE = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:3000'
+  : 'https://skills-manager.hacxy.cn'
 const API_BASE = `https://api.github.com/repos/${REGISTRY_OWNER}/${REGISTRY_REPO}`;
 
 const AUTH_ERROR =
@@ -45,19 +47,18 @@ export async function getGithubToken(): Promise<string | null> {
 }
 
 export async function fetchRegistryIndex(): Promise<RegistrySkillMeta[]> {
-  const res = await fetch(`${RAW_BASE}/skills-registry.json`);
+  const res = await fetch(`${SERVER_BASE}/api/public/skills`);
   if (!res.ok) throw new Error(`获取 registry 失败: ${res.status}`);
   const data = await res.json() as RegistrySkillMeta[];
   return data.slice().sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function fetchSkillContent(name: string): Promise<string> {
-  const res = await fetch(`${RAW_BASE}/skills/${name}/SKILL.md`);
+  const res = await fetch(`${SERVER_BASE}/api/public/file/${encodeURIComponent(name)}/SKILL.md`);
   if (!res.ok) throw new Error(`技能 "${name}" 不存在`);
   return res.text();
 }
 
-// 从 registry 读取文件列表，通过 raw URL 下载，无需认证，无 API 限速
 export async function fetchSkillDirectory(
   name: string
 ): Promise<Array<{ path: string; content: string }>> {
@@ -69,7 +70,7 @@ export async function fetchSkillDirectory(
 
   return Promise.all(
     files.map(async (file) => {
-      const res = await fetch(`${RAW_BASE}/skills/${name}/${file}`);
+      const res = await fetch(`${SERVER_BASE}/api/public/file/${encodeURIComponent(name)}/${file}`);
       if (!res.ok) throw new Error(`下载文件失败: ${file} (${res.status})`);
       return { path: file, content: await res.text() };
     })

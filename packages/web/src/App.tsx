@@ -36,7 +36,9 @@ function AnimatedMarkdown({ html, animKey }: { html: string; animKey: string }) 
   );
 }
 
-const RAW_BASE = "https://raw.githubusercontent.com/hacxy/skills/main";
+const SERVER_BASE = import.meta.env.DEV
+  ? 'http://localhost:3000'
+  : 'https://skills-manager.hacxy.cn'
 
 function parseFrontmatter(text: string): {
   data: Record<string, string>;
@@ -211,9 +213,7 @@ export function App() {
 
   async function reloadSkills() {
     try {
-      const url = import.meta.env.DEV
-        ? "/api/skills"
-        : `${RAW_BASE}/skills-registry.json?t=${Date.now()}`;
+      const url = `${SERVER_BASE}/api/public/skills`;
       const res = await fetch(url);
       const data = (await res.json()) as {
         name: string;
@@ -261,26 +261,18 @@ export function App() {
     setSkillFiles(["SKILL.md"]);
     setActiveTool(0);
 
-    // Fetch file list directly so it's never blocked by registry timing
-    const filesUrl = import.meta.env.DEV
-      ? `/api/skills/${encodeURIComponent(selectedName)}/files`
-      : `${RAW_BASE}/skills-registry.json?t=${Date.now()}`;
-    void fetch(filesUrl)
+    void fetch(`${SERVER_BASE}/api/public/skills`)
       .then((r) => r.json())
       .then((data: unknown) => {
-        if (import.meta.env.DEV) {
-          if (Array.isArray(data)) setSkillFiles(data as string[]);
-        } else {
-          const entry = (data as { name: string; files?: string[] }[]).find(
-            (s) => s.name === selectedName,
-          );
-          if (entry?.files) setSkillFiles(entry.files);
-        }
+        const entry = (data as { name: string; files?: string[] }[]).find(
+          (s) => s.name === selectedName,
+        );
+        if (entry?.files) setSkillFiles(entry.files);
       })
       .catch(() => {/* keep default */});
 
     void fetch(
-      `${RAW_BASE}/skills/${encodeURIComponent(selectedName)}/SKILL.md`,
+      `${SERVER_BASE}/api/public/file/${encodeURIComponent(selectedName)}/SKILL.md`,
     )
       .then((r) => r.text())
       .then((raw) => {
@@ -322,9 +314,7 @@ export function App() {
       return;
     }
     setIsLoadingFile(true);
-    const url = import.meta.env.DEV
-      ? `/api/file/${encodeURIComponent(selectedName)}/${filePath}`
-      : `${RAW_BASE}/skills/${encodeURIComponent(selectedName)}/${filePath}`;
+    const url = `${SERVER_BASE}/api/public/file/${encodeURIComponent(selectedName)}/${filePath}`;
     const raw = await fetch(url).then((r) => r.text());
     setViewContent(raw);
     setIsLoadingFile(false);
