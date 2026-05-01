@@ -261,13 +261,10 @@ export function App() {
     setSkillFiles(["SKILL.md"]);
     setActiveTool(0);
 
-    void fetch(`${SERVER_BASE}/api/public/skills`)
+    void fetch(`${SERVER_BASE}/api/public/file/${encodeURIComponent(selectedName)}`)
       .then((r) => r.json())
-      .then((data: unknown) => {
-        const entry = (data as { name: string; files?: string[] }[]).find(
-          (s) => s.name === selectedName,
-        );
-        if (entry?.files) setSkillFiles(entry.files);
+      .then((files: unknown) => {
+        if (Array.isArray(files)) setSkillFiles(files as string[]);
       })
       .catch(() => {/* keep default */});
 
