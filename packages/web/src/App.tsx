@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { marked } from "marked";
 import { useTranslation } from "react-i18next";
 import { HomePage } from "./HomePage";
+import { AboutPage } from "./AboutPage";
 import { TerminalAnimation } from "./TerminalAnimation";
 import { Navbar } from "./Navbar";
 
@@ -113,10 +114,13 @@ interface SkillDoc extends SkillMeta {
   raw: string;
 }
 
-type Page = "home" | "explorer";
+type Page = "home" | "explorer" | "about";
 
 function getInitialPage(): Page {
-  return window.location.pathname === "/" ? "home" : "explorer";
+  const path = window.location.pathname;
+  if (path === "/") return "home";
+  if (path === "/about") return "about";
+  return "explorer";
 }
 
 const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
@@ -178,6 +182,10 @@ export function App() {
       setSelectedName("");
       setSelectedDoc(null);
       window.history.pushState(null, "", "/");
+    } else if (target === "about") {
+      setSelectedName("");
+      setSelectedDoc(null);
+      window.history.pushState(null, "", "/about");
     } else {
       setSelectedName("");
       setSelectedDoc(null);
@@ -196,6 +204,9 @@ export function App() {
       const path = window.location.pathname;
       if (path === "/") {
         setPage("home");
+        setSelectedName("");
+      } else if (path === "/about") {
+        setPage("about");
         setSelectedName("");
       } else {
         setPage("explorer");
@@ -329,9 +340,31 @@ export function App() {
         >
           <HomePage
             onBrowse={() => navigateTo("explorer")}
+            onAbout={() => navigateTo("about")}
             theme={theme}
             onToggleTheme={toggleTheme}
             onLogoClick={() => navigateTo("home")}
+          />
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
+  if (page === "about") {
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div
+          key="about"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <AboutPage
+            onBrowse={() => navigateTo("explorer")}
+            onHome={() => navigateTo("home")}
+            theme={theme}
+            onToggleTheme={toggleTheme}
           />
         </motion.div>
       </AnimatePresence>

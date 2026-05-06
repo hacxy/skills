@@ -6,6 +6,7 @@ import { Navbar } from "./Navbar";
 
 interface Props {
   onBrowse: () => void;
+  onAbout: () => void;
   theme: "light" | "dark";
   onToggleTheme: () => void;
   onLogoClick: () => void;
@@ -68,6 +69,7 @@ const itemVariants = {
 
 export function HomePage({
   onBrowse,
+  onAbout,
   theme,
   onToggleTheme,
   onLogoClick,
@@ -106,10 +108,15 @@ export function HomePage({
         onToggleTheme={onToggleTheme}
         onLogoClick={onLogoClick}
         rightSlot={
-          <button className="btn-outline" onClick={onBrowse}>
-            {t("nav.browseSkills")}
-            <Icon icon="lucide:arrow-right" width="14" height="14" />
-          </button>
+          <>
+            <button className="btn-outline" onClick={onAbout}>
+              {t("nav.about")}
+            </button>
+            <button className="btn-outline" onClick={onBrowse}>
+              {t("nav.browseSkills")}
+              <Icon icon="lucide:arrow-right" width="14" height="14" />
+            </button>
+          </>
         }
       />
 
