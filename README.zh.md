@@ -13,7 +13,7 @@
 **触发词：** "评估代码质量"、"code review"、"审查代码"、"检查代码质量"、"分析代码"
 
 ```bash
-npx skills add https://github.com/hacxy/skills --skill code-review
+npx skills add hacxy/skills --skill code-review
 ```
 
 ## 安装
@@ -21,5 +21,5 @@ npx skills add https://github.com/hacxy/skills --skill code-review
 本合集中所有 skill 均可通过 [skills.sh](https://skills.sh/) 安装：
 
 ```bash
-npx skills add https://github.com/hacxy/skills --skill <skill-name>
+npx skills add hacxy/skills --skill <skill-name>
 ```

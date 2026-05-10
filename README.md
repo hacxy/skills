@@ -13,7 +13,7 @@ Evaluate code quality in a sub-agent for specified files or the entire project. 
 **Triggers:** "review code", "code review", "analyze code", "check code quality", "evaluate code"
 
 ```bash
-npx skills add https://github.com/hacxy/skills --skill code-review
+npx skills add hacxy/skills --skill code-review
 ```
 
 ## Installation
@@ -21,5 +21,5 @@ npx skills add https://github.com/hacxy/skills --skill code-review
 All skills in this collection can be installed via [skills.sh](https://skills.sh/):
 
 ```bash
-npx skills add https://github.com/hacxy/skills --skill <skill-name>
+npx skills add hacxy/skills --skill <skill-name>
 ```
