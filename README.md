@@ -26,6 +26,16 @@ Guide for creating and updating agent skills following best practices. Covers SK
 npx skills add hacxy/skills --skill create-skill
 ```
 
+### fit-docs
+
+Generate requirement documents (PRD), technical design documents (TDD), and architecture design documents that fully satisfy user needs. Actively clarifies ambiguities before writing — never fills gaps with assumptions.
+
+**Triggers:** "write a PRD", "generate requirements doc", "create technical design", "write architecture doc", "generate documentation", "write a spec"
+
+```bash
+npx skills add hacxy/skills --skill fit-docs
+```
+
 ## License
 
 [MIT](./LICENSE)

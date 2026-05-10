@@ -26,6 +26,16 @@ npx skills add hacxy/skills --skill code-review
 npx skills add hacxy/skills --skill create-skill
 ```
 
+### fit-docs
+
+生成完全满足用户需求的需求文档（PRD）、技术设计文档（TDD）和架构设计文档。在动笔前主动澄清所有模糊点，从不用通用假设填补信息空白。
+
+**触发词：** "写 PRD"、"生成需求文档"、"写技术设计文档"、"写架构设计文档"、"帮我写文档"、"写功能规格说明"
+
+```bash
+npx skills add hacxy/skills --skill fit-docs
+```
+
 ## 开源协议
 
 [MIT](./LICENSE)
