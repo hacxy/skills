@@ -26,9 +26,9 @@ npx skills add hacxy/skills --skill code-review
 npx skills add hacxy/skills --skill create-skill
 ```
 
-## 安装
+## 开源协议
 
-本合集中所有 skill 均可通过 [skills.sh](https://skills.sh/) 安装：
+[MIT](./LICENSE)
 
 ```bash
 npx skills add hacxy/skills --skill <skill-name>

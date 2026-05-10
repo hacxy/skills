@@ -26,10 +26,6 @@ Guide for creating and updating agent skills following best practices. Covers SK
 npx skills add hacxy/skills --skill create-skill
 ```
 
-## Installation
+## License
 
-All skills in this collection can be installed via [skills.sh](https://skills.sh/):
-
-```bash
-npx skills add hacxy/skills --skill <skill-name>
-```
+[MIT](./LICENSE)
