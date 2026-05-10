@@ -16,6 +16,16 @@ Evaluate code quality in a sub-agent for specified files or the entire project. 
 npx skills add hacxy/skills --skill code-review
 ```
 
+### create-skill
+
+Guide for creating and updating agent skills following best practices. Covers SKILL.md structure, the 200-line rule, progressive disclosure, and writing effective descriptions.
+
+**Triggers:** "create a skill", "build a skill", "how to structure a skill", "improve existing skill"
+
+```bash
+npx skills add hacxy/skills --skill create-skill
+```
+
 ## Installation
 
 All skills in this collection can be installed via [skills.sh](https://skills.sh/):
