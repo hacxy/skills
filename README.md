@@ -1,6 +1,6 @@
 # Skills
 
-[![skills.sh](https://skills.sh/b/owner/repo)](https://skills.sh/hacxy/skills)
+[![skills.sh](https://skills.sh/b/hacxy/skills)](https://skills.sh/hacxy/skills)
 
 [中文](./README.zh.md)
 
