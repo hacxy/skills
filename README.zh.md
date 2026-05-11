@@ -1,5 +1,7 @@
 # Skills
 
+[![skills.sh](https://skills.sh/b/owner/repo)](https://skills.sh/hacxy/skills)[27;5;106~
+
 [English](./README.md)
 
 Agent Skill 合集，包括 Claude Code、Cursor、Codex、GitHub Copilot、Windsurf、Gemini、Cline 等。
