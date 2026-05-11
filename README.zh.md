@@ -2,7 +2,7 @@
 
 [English](./README.md)
 
-适用于 [skills.sh](https://skills.sh/) 所支持的所有平台的 Agent Skill 合集，包括 Claude Code、Cursor、Codex、GitHub Copilot、Windsurf、Gemini、Cline 等。
+Agent Skill 合集，包括 Claude Code、Cursor、Codex、GitHub Copilot、Windsurf、Gemini、Cline 等。
 
 ## Skills 列表
 

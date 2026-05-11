@@ -2,7 +2,7 @@
 
 [中文](./README.zh.md)
 
-A collection of agent skills compatible with all platforms supported by [skills.sh](https://skills.sh/), including Claude Code, Cursor, Codex, GitHub Copilot, Windsurf, Gemini, Cline, and more.
+Agent Skill Collection. A collection of agent skills compatible with all platforms supported by [skills.sh](https://skills.sh/), including Claude Code, Cursor, Codex, GitHub Copilot, Windsurf, Gemini, Cline, and more.
 
 ## Skills
 
