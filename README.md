@@ -20,9 +20,9 @@ npx skills add hacxy/skills --skill code-review
 
 ### create-skill
 
-Guide for creating and updating agent skills following best practices. Covers SKILL.md structure, the 200-line rule, progressive disclosure, and writing effective descriptions.
+Create new skills, modify and improve existing skills, and measure skill performance through iterative evaluation with blind A/B comparison and quantitative benchmarking.
 
-**Triggers:** "create a skill", "build a skill", "how to structure a skill", "improve existing skill"
+**Triggers:** "create a skill", "build a skill", "how to structure a skill", "improve existing skill", "optimize skill description", "run skill evals", "benchmark skill performance"
 
 ```bash
 npx skills add hacxy/skills --skill create-skill

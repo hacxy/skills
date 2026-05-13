@@ -2,13 +2,13 @@
 
 [中文](./README.zh.md)
 
-A skill for creating and updating agent skills following best practices.
+A skill for creating new skills, modifying and improving existing skills, and measuring skill performance through iterative evaluation.
 
 ## What it does
 
-Guides the agent through creating effective skills — from writing a concise `SKILL.md` under 200 lines, to structuring `references/` for progressive disclosure, to writing descriptions that trigger reliably.
+Guides you through the full skill development lifecycle: capturing intent, writing a draft SKILL.md, running test cases with baselines, reviewing results in an interactive viewer, iterating on feedback, optimizing the description for better triggering accuracy, and packaging the final skill. Supports blind A/B comparison and quantitative benchmarking for rigorous evaluation.
 
-**Triggers:** "create a skill", "create new skill", "build a skill", "how to structure a skill", "improve existing skill", "update skill"
+**Triggers:** "create a skill", "build a skill", "how to structure a skill", "improve existing skill", "optimize skill description", "run skill evals", "benchmark skill performance"
 
 ## Install
 
@@ -16,18 +16,22 @@ Guides the agent through creating effective skills — from writing a concise `S
 npx skills add hacxy/skills --skill create-skill
 ```
 
-## Skill structure it produces
+## Skill structure
 
 ```
-skill-name/
-├── SKILL.md              # Required, <200 lines
-└── references/           # Optional, loaded on demand
-    └── *.md
+create-skill/
+├── SKILL.md              # Main instructions
+├── agents/               # Subagent prompts (grader, comparator, analyzer)
+├── scripts/              # Eval runner, benchmark aggregator, description optimizer
+├── eval-viewer/          # Interactive HTML review viewer
+├── assets/               # Eval review HTML template
+├── references/           # JSON schemas for evals, grading, benchmarks
+└── LICENSE.txt
 ```
 
 ## References
 
-- [`references/skill-structure.md`](references/skill-structure.md) — SKILL.md format and frontmatter
-- [`references/best-practices.md`](references/best-practices.md) — Comprehensive authoring guide
-- [`references/examples.md`](references/examples.md) — Good and bad skill examples
-- [`references/progressive-disclosure.md`](references/progressive-disclosure.md) — 200-line rule deep dive
+- [`references/schemas.md`](references/schemas.md) — JSON structures for evals.json, grading.json, benchmark.json, etc.
+- [`agents/grader.md`](agents/grader.md) — How to evaluate assertions against outputs
+- [`agents/comparator.md`](agents/comparator.md) — Blind A/B comparison between two outputs
+- [`agents/analyzer.md`](agents/analyzer.md) — Post-hoc analysis of comparison results
