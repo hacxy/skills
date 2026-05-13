@@ -6,7 +6,7 @@ A skill for evaluating code quality in a sub-agent and generating a professional
 
 ## What it does
 
-Runs a comprehensive code quality evaluation in an isolated sub-agent. Analyzes specified files or the entire project across 6 dimensions, outputs a structured Markdown report, and asks whether you'd like help fixing the issues found.
+Runs a comprehensive code quality evaluation in an isolated sub-agent. In a git repository, defaults to reviewing only unstaged/staged changes (not the entire project) for faster, more focused feedback. Analyzes across 6 dimensions, outputs a structured Markdown report, and asks whether you'd like help fixing the issues found.
 
 **Triggers:** "review code", "code review", "analyze code", "check code quality", "evaluate code"
 

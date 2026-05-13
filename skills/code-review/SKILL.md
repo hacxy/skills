@@ -19,9 +19,19 @@ Run a comprehensive code quality evaluation in an isolated sub-agent, generate a
 
 If the user specified files, directories, or a code snippet → **targeted review** (go to Step 2A).
 
-If not specified → **project-wide review** (go to Step 2B):
-- List all tracked files via `git ls-files`
-- Exclude `node_modules/`, `dist/`, `build/`, `.git/`, `coverage/`, `*.lock`, `*.min.*`
+If not specified → check if the project is a git repository:
+
+1. **Git repo with unstaged/staged changes** → **incremental review** (default, go to Step 2A):
+   - Run `git diff --name-only` (unstaged) and `git diff --cached --name-only` (staged) to collect changed files
+   - Use this combined file list as the targeted review scope
+   - This is the default because reviewing the entire project is too slow and noisy for most use cases
+
+2. **Git repo with no local changes** → **project-wide review** (go to Step 2B):
+   - List all tracked files via `git ls-files`
+   - Exclude `node_modules/`, `dist/`, `build/`, `.git/`, `coverage/`, `*.lock`, `*.min.*`
+
+3. **Not a git repo** → **project-wide review** (go to Step 2B):
+   - List all files, excluding common non-source directories
 
 ---
 
