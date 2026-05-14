@@ -2,12 +2,13 @@
 
 A skill for generating requirement documents (PRD), technical design documents (TDD), and architecture design documents that **fully satisfy user needs**.
 
-The key differentiator: this skill **actively clarifies ambiguities before writing**, never filling in gaps with generic assumptions. The result is documentation that precisely matches what you asked for.
+The key differentiator: this skill **thinks like a product manager** — it analyzes requirements from a product perspective before writing, probing for purpose, value, user experience, and product closure. It also **actively clarifies ambiguities**, never filling in gaps with generic assumptions. The result is documentation that not only matches what you asked for, but reveals insights you hadn't considered.
 
 → [中文文档](README.zh.md)
 
 ## What it does
 
+- **Product-minded analysis** — analyzes purpose, value proposition, user experience, and product closure before writing
 - Generates **PRD**, **TDD**, and **Architecture docs** in Markdown
 - Asks targeted clarifying questions before writing any section
 - Presents an outline for your approval before producing the full document
