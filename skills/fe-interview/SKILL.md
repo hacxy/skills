@@ -378,17 +378,42 @@ TypeScript 在 2026 年已是绝对标配——根据 Devographics 调查，40% 
 1. 创建临时数据目录：`mkdir -p /tmp/fe-interview-data`
 
 2. 逐片生成并写入——每完成一个片段立即用 Write 工具写入对应文件，不要等所有内容构思完再一起写：
-   - 生成候选人画像 → 写入 `/tmp/fe-interview-data/profile.html`
-   - 生成面试策略 → 写入 `/tmp/fe-interview-data/strategy.html`
-   - 生成面试题（按分类逐段生成，全部拼接后写入）→ 写入 `/tmp/fe-interview-data/questions.html`
-   - 生成强化学习方向 → 写入 `/tmp/fe-interview-data/learning.html`
-   - 写入元数据文本文件：
-     - `/tmp/fe-interview-data/candidate_name.txt`
-     - `/tmp/fe-interview-data/question_count.txt`
-     - `/tmp/fe-interview-data/level.txt`
-     - `/tmp/fe-interview-data/date.txt`
 
-   其中 `questions.html` 体积最大，如果题目较多（15+ 道），按分类分批生成并追加写入同一个文件，避免单次输出过大。
+   **元数据和小片段：**
+   - `/tmp/fe-interview-data/candidate_name.txt` — 候选人姓名
+   - `/tmp/fe-interview-data/question_count.txt` — 总题目数
+   - `/tmp/fe-interview-data/level.txt` — 候选人级别
+   - `/tmp/fe-interview-data/date.txt` — 生成日期
+   - `/tmp/fe-interview-data/profile.html` — 候选人画像卡片
+   - `/tmp/fe-interview-data/strategy.html` — 面试策略卡片
+   - `/tmp/fe-interview-data/learning.html` — 强化学习方向
+
+   **面试题按分类逐片写入：**
+
+   面试题是体积最大的部分，按分类逐个生成，每个分类写入独立的片段文件到 `/tmp/fe-interview-data/questions/` 目录：
+
+   ```
+   /tmp/fe-interview-data/questions/
+   ├── 01-js-core.html        ← JavaScript 核心基础
+   ├── 02-typescript.html     ← TypeScript 深度
+   ├── 03-framework.html      ← 框架深度
+   ├── 04-engineering.html    ← 工程化与构建
+   ├── 05-performance.html    ← 性能优化
+   ├── 06-network.html        ← 网络与安全
+   ├── 07-css.html            ← CSS 与布局
+   ├── 08-cross-platform.html ← 跨端开发（如涉及）
+   ├── 09-ai.html             ← AI 与前端
+   ├── 10-system-design.html  ← 系统设计
+   ├── 11-project-deep.html   ← 项目深挖
+   └── 12-behavioral.html     ← 行为与软技能
+   ```
+
+   每生成一个分类的面试题（含 `.section-header` 和该分类下所有 `.q-card`），立即写入对应片段文件。文件名使用数字前缀确保排序正确。根据候选人简历跳过不相关的分类（如简历无跨端经验则跳过 `08-cross-platform.html`）。
+
+   所有分类写入完毕后，调用脚本将片段拼接为完整的 `questions.html`：
+   ```bash
+   bash "$SKILL_DIR/scripts/assemble-questions.sh" /tmp/fe-interview-data/questions /tmp/fe-interview-data/questions.html
+   ```
 
 3. 启动 sub-agent 验证内容完整性——检查所有临时文件是否存在且内容完整：
    - 每个 `.html` 文件的 HTML 标签是否闭合、结构是否完整（无截断）
@@ -401,7 +426,7 @@ TypeScript 在 2026 年已是绝对标配——根据 Devographics 调查，40% 
    bash "$SKILL_DIR/scripts/render-html.sh" "$SKILL_DIR/assets/template.html" /tmp/fe-interview-data "<候选人名>"
    ```
 
-5. 清理临时数据目录：
+5. 清理所有临时文件：
    ```bash
    rm -rf /tmp/fe-interview-data
    ```
