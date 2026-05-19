@@ -369,13 +369,42 @@ TypeScript 在 2026 年已是绝对标配——根据 Devographics 调查，40% 
 3. 下一个级别晋升所需的核心能力
 4. 推荐具体的学习资源（官方文档、经典文章、开源项目等）
 
-#### 输出流程
+#### 输出流程（分片写入）
 
-1. 先在内部完成所有面试题的构思和组织
-2. 读取 `assets/template.html` 模板
-3. 将所有占位符替换为实际的 HTML 内容
-4. 将完整 HTML 写入 `/tmp/fe-interview-{候选人名}.html`
-5. 使用 `open` 命令在浏览器中打开
+面试题库的 HTML 内容较大（通常数万 token），一次性生成容易因网络波动导致输出中断。采用分片式写入：每生成一个片段立即写入磁盘临时文件，确保已完成的内容不因后续中断而丢失。
+
+**流程：**
+
+1. 创建临时数据目录：`mkdir -p /tmp/fe-interview-data`
+
+2. 逐片生成并写入——每完成一个片段立即用 Write 工具写入对应文件，不要等所有内容构思完再一起写：
+   - 生成候选人画像 → 写入 `/tmp/fe-interview-data/profile.html`
+   - 生成面试策略 → 写入 `/tmp/fe-interview-data/strategy.html`
+   - 生成面试题（按分类逐段生成，全部拼接后写入）→ 写入 `/tmp/fe-interview-data/questions.html`
+   - 生成强化学习方向 → 写入 `/tmp/fe-interview-data/learning.html`
+   - 写入元数据文本文件：
+     - `/tmp/fe-interview-data/candidate_name.txt`
+     - `/tmp/fe-interview-data/question_count.txt`
+     - `/tmp/fe-interview-data/level.txt`
+     - `/tmp/fe-interview-data/date.txt`
+
+   其中 `questions.html` 体积最大，如果题目较多（15+ 道），按分类分批生成并追加写入同一个文件，避免单次输出过大。
+
+3. 启动 sub-agent 验证内容完整性——检查所有临时文件是否存在且内容完整：
+   - 每个 `.html` 文件的 HTML 标签是否闭合、结构是否完整（无截断）
+   - `questions.html` 中的题目数量是否与 `question_count.txt` 一致
+   - 每道题是否包含完整的四要素（题目、参考答案、追问方向、评分要点）
+   - 如发现缺失或截断，指出具体问题，由主 agent 补全后重新验证
+
+4. 验证通过后，调用脚本完成模板渲染和浏览器打开：
+   ```bash
+   bash "$SKILL_DIR/scripts/render-html.sh" "$SKILL_DIR/assets/template.html" /tmp/fe-interview-data "<候选人名>"
+   ```
+
+5. 清理临时数据目录：
+   ```bash
+   rm -rf /tmp/fe-interview-data
+   ```
 
 答案中的代码块使用 `<pre><code>` 标签。答案中的列表使用 `<ul><li>` 或 `<ol><li>`。答案中的表格使用语义化的 `<table>` 标签。
 
