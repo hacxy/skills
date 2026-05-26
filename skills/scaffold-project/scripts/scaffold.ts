@@ -1,25 +1,25 @@
 import { randomBytes } from 'node:crypto'
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { $ } from 'bun'
 
 const { values } = parseArgs({
   options: {
-    template: { type: 'string', short: 't' },
     name: { type: 'string', short: 'n' },
     target: { type: 'string', short: 'd' },
+    // --template 保留为兼容参数，但忽略，始终使用 fullstack
+    template: { type: 'string', short: 't' },
   },
 })
 
-const template = values.template as 'fullstack' | 'frontend' | 'backend'
 const projectName = values.name!
 const templatesDir = join(import.meta.dir, '../templates')
 const targetBase = values.target || '.'
 const targetDir = join(targetBase, projectName)
 
-if (!template || !projectName) {
-  console.error('Usage: bun run scaffold.ts --template <fullstack|frontend|backend> --name <name> [--target <path>]')
+if (!projectName) {
+  console.error('Usage: bun run scaffold.ts --name <project-name> [--target <path>]')
   process.exit(1)
 }
 
@@ -99,56 +99,14 @@ function scaffoldFullstack(): void {
   console.log('Fullstack project scaffolded successfully!')
 }
 
-function scaffoldFrontend(): void {
-  console.log('Scaffolding frontend project...')
-  const sourceDir = join(templatesDir, 'frontend')
-  copyDirRecursive(sourceDir, targetDir)
-
-  const pkg = readJson(join(targetDir, 'package.json'))
-  pkg.name = projectName
-  writeJson(join(targetDir, 'package.json'), pkg)
-
-  copyEnvExample(targetDir)
-
-  console.log('Frontend project scaffolded successfully!')
-}
-
-function scaffoldBackend(): void {
-  console.log('Scaffolding backend project...')
-  const sourceDir = join(templatesDir, 'backend')
-  copyDirRecursive(sourceDir, targetDir)
-
-  const pkg = readJson(join(targetDir, 'package.json'))
-  pkg.name = projectName
-  writeJson(join(targetDir, 'package.json'), pkg)
-
-  copyEnvExample(targetDir)
-
-  console.log('Backend project scaffolded successfully!')
-}
-
-console.log(`Template: ${template}`)
+console.log(`Template: fullstack (only template)`)
 console.log(`Project name: ${projectName}`)
 console.log(`Target: ${targetDir}`)
 console.log('')
 
-switch (template) {
-  case 'fullstack':
-    scaffoldFullstack()
-    break
-  case 'frontend':
-    scaffoldFrontend()
-    break
-  case 'backend':
-    scaffoldBackend()
-    break
-  default:
-    console.error(`Unknown template: ${template}`)
-    process.exit(1)
-}
+scaffoldFullstack()
 
 console.log('')
-
 console.log('Initializing git...')
 await $`git init`.cwd(targetDir).quiet()
 
