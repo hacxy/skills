@@ -86,6 +86,11 @@ Agent(subagent_type="Product Manager", prompt="""
 需求描述：<user-requirement>
 项目目录：<project-dir>
 任务：输出 PRD 到 <project-dir>/docs/prd-<name>-<date>.md
+
+如需额外交付物可同时要求：
+  - Roadmap (Now/Next/Later)：路线图规划
+  - Go-to-Market Brief：发布计划与 checklist
+  - Sprint Health Snapshot：Sprint 交付状态跟踪
 """)
 ```
 
