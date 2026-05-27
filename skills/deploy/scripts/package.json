@@ -1,0 +1,7 @@
+{
+  "name": "@ship/deploy-scripts",
+  "private": true,
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
+}

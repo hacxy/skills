@@ -1,108 +1,84 @@
 ---
 name: deploy
 description: >
-  部署 ship 项目到目标环境。支持两种模式：
-  （1）本地 mock-server（Docker 容器，架构与生产服务器一致：nginx + Elysia 二进制）；
-  （2）生产服务器（SSH + nginx + systemd，待扩展）。
-  当用户说"部署"、"deploy"、"发布到服务器"、"测试部署"、"本地测试"、"验证部署"、
-  或 ship workflow Stage 10 需要发布时，使用此 skill。
+  通过 SSH 将 ship 项目部署到目标服务器。首次运行自动创建项目配置文件，
+  后续运行直接读取配置文件部署。服务器地址、端口等敏感信息存在本地配置文件中，
+  不提交到仓库。当用户说"部署"、"deploy"、"发布"、"上线"、或
+  ship workflow Stage 10 需要发布时使用此 skill。
 ---
 
-## 服务器真实架构（必须理解）
+## 服务器架构
 
 ```
-远程服务器 (OpenCloudOS 9.2 / RHEL 9)
-├── nginx 1.26.2
-│   ├── 静态文件  → /srv/projects/<app>/web/（nginx 直接服务，不经过 Elysia）
-│   └── /api/*  → proxy_pass http://127.0.0.1:<port>
+目标服务器（通过 SSH 访问，无论是本地测试环境还是生产服务器，流程完全一致）
+├── nginx
+│   ├── 静态文件  → /srv/projects/<app>/web/
+│   └── /api/*  → proxy_pass → Elysia 后端
 └── Elysia 后端
-    ├── 编译为 Linux 原生二进制（bun build --compile）
-    ├── systemd 管理（每个 app 独立 user/group）
-    └── 只暴露 /api/* 路由，不服务任何静态文件
+    ├── 在服务器上原生编译（bun build --compile），无跨平台问题
+    ├── cwd = /srv/projects/<app>/server/
+    └── 只暴露 /api/* 路由，不服务静态文件
 ```
 
-**Elysia 不做静态文件服务**——nginx 负责。任何在 Elysia 里服务静态文件的代码在生产环境都是无效的。
+**注意：** Elysia 不服务静态文件，nginx 负责。`client.ts` 必须用 `process.cwd()` 而不是 `import.meta.dir`。
 
 ---
 
-## 本地 Mock Server（开发测试用）
-
-本地 mock-server 完全镜像真实服务器架构：
-- nginx 服务静态文件 + proxy_pass /api/
-- Bun 运行 Elysia（mock 用 bun run，真实服务器用编译二进制）
-
-### 前提：启动 mock-server 容器
+## 部署命令
 
 ```bash
-cd ~/Projects/mock-server && docker compose up -d
-# 验证：curl http://localhost:8088/health
+bash "$SKILL_DIR/scripts/deploy.sh" <project-dir> [app-name]
 ```
 
-### 部署到 mock-server
+**首次运行**：在 `~/.config/ship/<app>.conf` 创建配置文件模板，填写后重新运行。
 
-```bash
-bash "$SKILL_DIR/scripts/mock-server.sh" <project-dir> <app-name> <port>
-```
-
-脚本执行流程：
-1. `bun run build`（前端）
-2. 复制 dist/ → 容器 `/srv/projects/<app>/web/`
-3. 复制 server 源码 → 容器，容器内 `bun install`
-4. 复制 drizzle 迁移文件
-5. 生成 nginx app.conf（静态文件 + proxy_pass）
-6. 启动 Elysia：`bun run src/index.ts`
-7. nginx reload
-
-### 验证
-
-```bash
-bun run "$SKILL_DIR/scripts/verify-browser.ts" \
-  http://localhost:8088 \
-  / /transactions /reports /accounts  # ← 替换为实际路由
-```
-
-验证通过条件：所有路由 `errors=0 badMime=0`
+**后续运行**：完整部署流程自动执行：
+1. 本地编译前端（`bun run build`）
+2. `rsync` 前端 dist/、后端 src/、迁移文件到服务器
+3. SSH 进服务器：`bun install` + `bun build --compile`（在服务器原生架构编译）
+4. 写入 nginx conf、重启后端进程、reload nginx
+5. `verify-browser.ts` 验证
 
 ---
 
-## 生产服务器（待完善）
+## 配置文件
+
+`~/.config/ship/<app>.conf`（本地私有，不提交仓库）：
 
 ```bash
-# 1. 构建前端
-cd apps/web && bun run build
-
-# 2. 编译后端为 Linux x86_64 二进制
-cd apps/server && bun build --compile \
-  --target=bun-linux-x64 \
-  --outfile bin/server \
-  src/index.ts
-
-# 3. 上传到服务器
-rsync -av apps/web/dist/ server:/srv/projects/<app>/web/
-rsync -av apps/server/bin/server server:/srv/projects/<app>/server/bin/
-rsync -av apps/server/drizzle/ server:/srv/projects/<app>/server/drizzle/
-
-# 4. 重启服务
-ssh server "systemctl restart <app>-server"
-
-# 5. nginx 配置（参考 scripts/nginx-app.conf.template）
-# 6. 验证（替换为实际域名）
-bun run "$SKILL_DIR/scripts/verify-browser.ts" https://<domain> / /transactions
+SSH_HOST=           # 服务器 IP 或域名
+SSH_PORT=22         # SSH 端口
+SSH_USER=root
+REMOTE_DIR=/srv/projects
+APP_URL=https://yourapp.com  # 部署后的访问地址（用于验证）
+APP_PORT=3000
 ```
 
-**注意：**
-- `import.meta.dir` 在编译后二进制中无效，必须用 `process.cwd()`
-- 编译后端时需在 server 目录下运行（`cwd = apps/server/`）
-- drizzle 迁移文件夹路径：`process.cwd()/drizzle`（由 `drizzle.config.ts` 的 `out` 字段决定）
+---
+
+## 验证
+
+```bash
+bun run "$SKILL_DIR/scripts/verify-browser.ts" <APP_URL> / <route2> ...
+```
+
+通过条件：所有路由 0 console.error，JS=text/javascript，CSS=text/css
 
 ---
 
 ## 常见问题
 
-**502 Bad Gateway**：Elysia 未启动或端口不对 → 检查 `docker exec mock-server tail /var/log/<app>-server.log`
+**首次运行只生成配置文件**：正常行为，填写 SSH_HOST 等信息后重跑。
 
-**ENOENT: /web/dist/index.html**：Elysia 里有静态文件路由，且 `import.meta.dir` 在编译后失效 → 删除 Elysia 的静态路由（nginx 负责），确保 client.ts 用 `process.cwd()`
+**502 Bad Gateway**：后端未启动或端口错误 →
+```bash
+ssh -p <SSH_PORT> <SSH_USER>@<SSH_HOST> "tail -f /var/log/<app>-server.log"
+```
 
-**MIME type 错误**：Elysia 用了 staticPlugin 通配符 → 改为 nginx 服务静态文件
+**bun: not found on server**：服务器没装 Bun → 安装 Bun：
+```bash
+ssh server "curl -fsSL https://bun.sh/install | bash"
+```
 
-**迁移失败 "Can't find meta/_journal.json"**：drizzle 迁移目录未复制，或路径用了 `import.meta.dir` → 用 `process.cwd()/drizzle`
+**ENOENT migrations**：`client.ts` 用了 `import.meta.dir` →
+改为 `process.cwd()/drizzle`。
