@@ -307,7 +307,7 @@ Agent(subagent_type="Test Engineer", prompt="""
   2. bunx playwright test — 目标 0 fail
      测试 bug（selector 过宽、toHaveURL 含 ^ 锚点）：自行修复
      实现 bug：整理清单报给总监
-  3. 调用 bun run "$SKILL_DIR/scripts/verify-browser.ts" 验证所有路由
+  3. 调用 bun run "$HOME/.claude/skills/deploy/scripts/verify-browser.ts" 验证所有路由
 
 [迭代模式] 所有测试（新功能 + 已有功能）必须全部 0 fail。
 输出：分层测试报告 + SHIP IT ✅ / NEEDS WORK ❌
@@ -332,9 +332,17 @@ bash "$SKILL_DIR/scripts/update-status.sh" start 10 <project-name>
 ```
 Agent(subagent_type="DevOps Engineer", prompt="""
 项目目录：<project-dir>
-任务：构建前端、配置后端静态文件服务、启动生产服务器、headless 浏览器验证
-验证命令：bun run "$SKILL_DIR/scripts/verify-browser.ts" http://localhost:3000 <routes...>
-输出：可访问的生产地址
+部署目标：本地 mock-server（http://localhost:8088）
+app 名称：<app-name>
+后端端口：<port>
+前端路由（从 TDD 提取）：/ <route2> <route3> ...
+
+使用 deploy skill 脚本完成部署和验证：
+  1. bash ~/.claude/skills/deploy/scripts/mock-server.sh <project-dir> <app-name> <port>
+  2. bun run ~/.claude/skills/deploy/scripts/verify-browser.ts http://localhost:8088 <routes...>
+
+[迭代模式] 验证时确认已有功能在生产环境也正常。
+输出：部署地址 + 各路由验证结果
 """)
 ```
 
@@ -342,7 +350,8 @@ Agent(subagent_type="DevOps Engineer", prompt="""
 
 ```bash
 bash "$SKILL_DIR/scripts/validate-stage.sh" 10 <project-dir> \
-  && bun run "$SKILL_DIR/scripts/verify-browser.ts" http://localhost:3000 / <其他路由> \
+  && bun run ~/.claude/skills/deploy/scripts/verify-browser.ts \
+       http://localhost:8088 / <其他路由> \
   && bash "$SKILL_DIR/scripts/update-status.sh" done 10 <project-name>
 ```
 
