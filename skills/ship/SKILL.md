@@ -160,13 +160,19 @@ bash "$SKILL_DIR/scripts/update-status.sh" done 3 <project-name>
 
 ---
 
-### 阶段 4 — UI 设计师：页面原型
+### 阶段 4+5 — UI 设计师 + 测试工程师：并行执行
+
+**Stage 4 和 Stage 5 的 unit/API 测试都只依赖 TDD，两者并发启动节省约 800 秒。**
 
 ```bash
 bash "$SKILL_DIR/scripts/update-status.sh" start 4 <project-name>
+bash "$SKILL_DIR/scripts/update-status.sh" start 5 <project-name>
 ```
 
+**同时 spawn 两个 agent（不等待彼此）：**
+
 ```
+# 并发 — 两个 Agent 同时运行
 Agent(subagent_type="UI Designer", prompt="""
 输入：
   - <project-dir>/docs/prd-*.md（用户故事）
@@ -174,21 +180,44 @@ Agent(subagent_type="UI Designer", prompt="""
 任务：为每个页面创建 HTML 原型，保存到 <project-dir>/design/，每个路由一个文件
 要求：移动端优先（375px），使用真实中文内容和数字，包含底部导航栏
 """)
+
+Agent(subagent_type="Test Engineer", prompt="""
+模式：Stage 5 — 写测试骨架（第一轮：unit + api，暂不写 E2E）
+输入：
+  - <project-dir>/docs/prd-*.md（用户故事）
+  - <project-dir>/docs/tdd-*.md（API 设计）
+  - <project-dir>/apps/server/src/（现有骨架代码）
+产出（本轮）：
+  - tests/unit/（纯逻辑，初始全通）
+  - tests/api/（初始全红）
+  - playwright.config.ts（先建好框架）
+E2E 测试等 UI 设计师完成后单独补写。
+运行 bun test tests/unit/ 确认全通后结束。
+""")
 ```
 
-**总监评估：** TDD 每个路由都有对应原型？核心操作一眼能找到？
+**等两者都完成后，补写 E2E（需要 design/ 作为 selector 参考）：**
+
+```
+Agent(subagent_type="Test Engineer", prompt="""
+模式：Stage 5 — 补写 E2E 测试
+UI 原型已完成，路径：<project-dir>/design/
+PRD 用户故事：<project-dir>/docs/prd-*.md
+补写 tests/e2e/，每条用户故事一个 spec。
+注意：selector 要精准，toHaveURL 不加 ^ 锚点，seeding 用 page.request.post API
+""")
+```
+
+**总监评估：** UI 覆盖所有路由？unit 全通？api 测试初始为红？每条用户故事有 E2E？
 
 ```bash
 bash "$SKILL_DIR/scripts/update-status.sh" done 4 <project-name>
+bash "$SKILL_DIR/scripts/update-status.sh" done 5 <project-name>
 ```
 
 ---
 
-### 阶段 5 — 测试工程师：建立测试骨架
-
-```bash
-bash "$SKILL_DIR/scripts/update-status.sh" start 5 <project-name>
-```
+### 阶段 5（原始提示，仅顺序执行时使用）
 
 ```
 Agent(subagent_type="Test Engineer", prompt="""
