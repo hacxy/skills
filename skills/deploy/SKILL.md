@@ -84,6 +84,29 @@ cat ~/.ssh/id_ed25519.pub | ssh root@server "cat >> /home/deploy/.ssh/authorized
 
 ---
 
+## SSL 证书
+
+服务器使用 **acme.sh + Let's Encrypt + DNSPod DNS API** 签发通配符证书。
+
+deploy.sh 自动检测 `/etc/nginx/ssl/*/fullchain.cer`：
+- 有证书 → 生成 HTTPS nginx 配置（443 + HTTP→HTTPS 301）
+- 无证书 → 生成 HTTP nginx 配置
+
+**签发新证书**（详见 `references/ssl-setup.md`）：
+```bash
+# SSH 进服务器（root）
+~/.acme.sh/acme.sh --issue --dns dns_dp \
+    -d yourdomain.com -d "*.yourdomain.com" --keylength ec-384
+~/.acme.sh/acme.sh --install-cert -d yourdomain.com \
+    --key-file /etc/nginx/ssl/yourdomain.com/yourdomain.com.key \
+    --fullchain-file /etc/nginx/ssl/yourdomain.com/fullchain.cer \
+    --reloadcmd "service nginx force-reload"
+```
+
+DNS API 密钥存储在服务器 `~/.acme.sh/account.conf`（不在任何仓库中）。
+
+---
+
 ## 验证
 
 ```bash
