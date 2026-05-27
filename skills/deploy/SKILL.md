@@ -1,26 +1,30 @@
 ---
 name: deploy
 description: >
-  通过 SSH 将 ship 项目部署到目标服务器。首次运行自动创建项目配置文件，
-  后续运行直接读取配置文件部署。服务器地址、端口等敏感信息存在本地配置文件中，
-  不提交到仓库。当用户说"部署"、"deploy"、"发布"、"上线"、或
-  ship workflow Stage 10 需要发布时使用此 skill。
+  通过 SSH 密钥将 ship 项目部署到目标服务器。
+  首次运行自动生成配置文件模板（~/.config/ship/<app>.conf），填写后重新运行即可完整部署。
+  服务器敏感信息（地址、密钥路径、域名）存在本地配置文件，不提交到仓库。
+  当用户说"部署"、"deploy"、"发布"、"上线"，或 ship workflow Stage 10 时使用。
 ---
 
-## 服务器架构
+## 服务器部署架构
 
 ```
-目标服务器（通过 SSH 访问，无论是本地测试环境还是生产服务器，流程完全一致）
-├── nginx
-│   ├── 静态文件  → /srv/projects/<app>/web/
-│   └── /api/*  → proxy_pass → Elysia 后端
-└── Elysia 后端
-    ├── 在服务器上原生编译（bun build --compile），无跨平台问题
-    ├── cwd = /srv/projects/<app>/server/
-    └── 只暴露 /api/* 路由，不服务静态文件
+/srv/projects/<app>/
+├── web/                  ← 前端静态文件（nginx 直接服务）
+└── server/
+    ├── sqlite.db         ← 数据库（WorkingDirectory = server/）
+    ├── bin/
+    │   └── server        ← Bun 编译的 Linux x64 原生二进制
+    └── drizzle/          ← 数据库迁移文件
 ```
 
-**注意：** Elysia 不服务静态文件，nginx 负责。`client.ts` 必须用 `process.cwd()` 而不是 `import.meta.dir`。
+**进程管理**：systemd（服务名 `<app>-server`）
+**用户**：`deploy`（有 sudo 权限执行 `systemctl restart <app>-server`）
+**nginx**：SSL 终止 + 静态文件服务 + `/api/*` proxy_pass
+
+**Elysia 只暴露 `/api/*`，不服务静态文件。**
+`client.ts` 必须用 `process.cwd()` 而不是 `import.meta.dir`（编译后无效）。
 
 ---
 
@@ -30,28 +34,52 @@ description: >
 bash "$SKILL_DIR/scripts/deploy.sh" <project-dir> [app-name]
 ```
 
-**首次运行**：在 `~/.config/ship/<app>.conf` 创建配置文件模板，填写后重新运行。
-
-**后续运行**：完整部署流程自动执行：
-1. 本地编译前端（`bun run build`）
-2. `rsync` 前端 dist/、后端 src/、迁移文件到服务器
-3. SSH 进服务器：`bun install` + `bun build --compile`（在服务器原生架构编译）
-4. 写入 nginx conf、重启后端进程、reload nginx
-5. `verify-browser.ts` 验证
+**首次运行**：生成 `~/.config/ship/<app>.conf` 模板，填写后重跑。  
+**后续运行**：直接执行完整部署流程。
 
 ---
 
-## 配置文件
+## 配置文件格式
 
 `~/.config/ship/<app>.conf`（本地私有，不提交仓库）：
 
 ```bash
-SSH_HOST=           # 服务器 IP 或域名
-SSH_PORT=22         # SSH 端口
-SSH_USER=root
-REMOTE_DIR=/srv/projects
-APP_URL=https://yourapp.com  # 部署后的访问地址（用于验证）
-APP_PORT=3000
+SSH_HOST=your-server.com      # 服务器地址
+SSH_PORT=22                   # SSH 端口
+DEPLOY_KEY=~/.ssh/id_ed25519  # deploy 用户的本地私钥路径
+
+APP_DOMAIN=app.yourdomain.com # 域名（nginx server_name + 验证用）
+APP_PORT=3000                 # Elysia 后端端口
+REMOTE_DIR=/srv/projects      # 服务器项目根目录
+```
+
+---
+
+## 完整部署流程
+
+1. **本地编译前端** — `bun run build`
+2. **本地交叉编译后端** — `bun build --compile --target=bun-linux-x64`
+3. **rsync 三类文件**：
+   - `apps/web/dist/` → `server:/srv/projects/<app>/web/`
+   - `apps/server/bin/server` → `server:/srv/projects/<app>/server/bin/server`
+   - `apps/server/drizzle/` → `server:/srv/projects/<app>/server/drizzle/`
+4. **nginx 配置**（首次部署自动生成，已有则跳过）
+5. **重启服务** — `sudo systemctl restart <app>-server`
+6. **验证** — headless 浏览器检查所有路由
+
+---
+
+## 首次部署前提（需 root 在服务器执行一次）
+
+deploy 用户需要有对应 app 的 systemd 服务和 sudo 权限：
+
+```bash
+# 1. 创建 systemd 服务文件（脚本会提示具体内容）
+# 2. 赋予 deploy 用户 sudo 权限
+echo 'deploy ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart <app>-server' \
+    | sudo tee /etc/sudoers.d/<app>-deploy
+# 3. 确保 deploy 用户的 SSH 公钥已在服务器上
+cat ~/.ssh/id_ed25519.pub | ssh root@server "cat >> /home/deploy/.ssh/authorized_keys"
 ```
 
 ---
@@ -59,26 +87,21 @@ APP_PORT=3000
 ## 验证
 
 ```bash
-bun run "$SKILL_DIR/scripts/verify-browser.ts" <APP_URL> / <route2> ...
+bun run "$SKILL_DIR/scripts/verify-browser.ts" https://<domain> / <route2> ...
 ```
-
-通过条件：所有路由 0 console.error，JS=text/javascript，CSS=text/css
 
 ---
 
 ## 常见问题
 
-**首次运行只生成配置文件**：正常行为，填写 SSH_HOST 等信息后重跑。
+**Permission denied (publickey)**：检查 `DEPLOY_KEY` 路径，确认该公钥已加入服务器 deploy 用户的 `~/.ssh/authorized_keys`
 
-**502 Bad Gateway**：后端未启动或端口错误 →
-```bash
-ssh -p <SSH_PORT> <SSH_USER>@<SSH_HOST> "tail -f /var/log/<app>-server.log"
-```
+**systemd 服务不存在**：脚本会打印创建命令，用 root 执行后重新部署
 
-**bun: not found on server**：服务器没装 Bun → 安装 Bun：
+**502 Bad Gateway**：后端未启动 →
 ```bash
-ssh server "curl -fsSL https://bun.sh/install | bash"
+ssh -i $DEPLOY_KEY deploy@$SSH_HOST "journalctl -u <app>-server -f"
 ```
 
 **ENOENT migrations**：`client.ts` 用了 `import.meta.dir` →
-改为 `process.cwd()/drizzle`。
+改为 `join(process.cwd(), 'drizzle')`，并确保 drizzle/ 已 rsync 到服务器
