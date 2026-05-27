@@ -3,18 +3,36 @@ name: ship
 description: >
   以项目总监视角交付产品——调度 8 个专业角色 Agent，确保产品逻辑闭环，在每个关键节点主动判断并干预。
   支持两种模式：（1）新项目——从零交付高质量 MVP 初版；（2）现有项目迭代——高质量交付迭代版本，已有功能不退化。
-  内置工具链：状态看板、阶段回滚、生产回滚。
+  内置工具链：状态看板、自动验证、阶段回滚、生产回滚。
   当用户说"ship"、"ship it"、"交付"、"发布产品"、"做一个新功能"、"端到端开发"、"全流程"、
   "一键开发上线"、"发一个版本"、"start ship"，或者想完整走一遍从需求到上线的开发流程时，务必使用此 skill。
 ---
 
-## 前置检查：自动安装 Agents
+## Harness 架构
+
+ship workflow 的 harness 层由以下脚本组成。**脚本能做的事不交给 LLM 判断**。
+
+| 脚本 | 职责 |
+|---|---|
+| `check-agents.sh` | 前置：确保 8 个角色 agent 已安装 |
+| `detect-stage.sh` | 前置：检测项目当前阶段（新项目 vs 迭代）|
+| `update-status.sh` | 全程：状态看板读写、git checkpoint |
+| `validate-stage.sh` | **每阶段完成前自动验证产出**（0/1 退出码）|
+| `gen-claude-md.sh` | Stage 3 后：生成项目 CLAUDE.md，统一所有 agent 的上下文 |
+| `check-ports.sh` | Stage 9 前：确保 3000/5173 端口可用 |
+| `verify-browser.ts` | Stage 7/9/10：headless 浏览器验证，不再手写脚本 |
+
+**validate-stage.sh 是关键 harness 组件：** 每个 Stage 的 `done` 命令必须先通过验证才能执行。如果脚本失败，说明 agent 的产出不合格，不能 mark done。
+
+---
+
+## 前置检查
 
 ```bash
 bash "$SKILL_DIR/scripts/check-agents.sh"
+bash "$SKILL_DIR/scripts/detect-stage.sh"
+bash "$SKILL_DIR/scripts/update-status.sh" init <project-name> <new-project|iteration>
 ```
-
-脚本检查 `~/.claude/agents/` 中是否存在全部 8 个 agent 文件。缺失时自动从 `hacxy/agents` 克隆安装，完成后**必须重启 Claude Code**，然后重新运行 `/ship`。
 
 ---
 
@@ -31,15 +49,7 @@ bash "$SKILL_DIR/scripts/check-agents.sh"
 | 技术评审 | `Code Reviewer` | 代码审查（Stage 8）|
 | DevOps 工程师 | `DevOps Engineer` | 部署上线（Stage 10）|
 
-**subagent_type 的值必须与 `~/.claude/agents/*.md` 文件中 `name` 字段完全一致（含大小写和空格）。**
-
-阶段间通信通过文件完成：
-```
-Stage 1 → docs/prd-*.md    Stage 4 → design/*.html
-Stage 2 → docs/tdd-*.md    Stage 5 → tests/
-Stage 3 → apps/ 项目结构   Stage 6 → apps/server/src/
-                            Stage 7 → apps/web/src/
-```
+**subagent_type 必须与 `~/.claude/agents/*.md` 中 `name` 字段完全一致（含大小写空格）。**
 
 ---
 
@@ -47,35 +57,26 @@ Stage 3 → apps/ 项目结构   Stage 6 → apps/server/src/
 
 **总监只做三件事：启动 agent、读产出、评估质量。**
 
-发现问题 → 描述清楚 → spawn 对应角色 agent → 等修复 → 验证。
-
-❌ 总监不直接编辑代码文件、测试文件、运行修复命令。发现自己要用 Edit/Write/Bash 修改 `apps/` 或 `tests/`——立即停止。
-
----
-
-## 两种交付模式
-
-| 模式 | 触发条件 |
-|------|---------|
-| **新项目 MVP** | 无代码库 / 全新立项 |
-| **现有项目迭代** | 已有代码库 / 新功能需求 |
+❌ 总监不直接编辑代码文件、测试文件、运行修复命令。  
+发现问题 → 描述清楚 → spawn 对应角色 agent → 等修复 → 重新验证。
 
 ---
 
-## 第一步：读懂需求，确定起点
+## 阶段间文件通信
 
-```bash
-bash "$SKILL_DIR/scripts/detect-stage.sh"
-bash "$SKILL_DIR/scripts/update-status.sh" init <project-name> <new-project|iteration>
+```
+Stage 1 → docs/prd-*.md
+Stage 2 → docs/tdd-*.md
+Stage 3 → apps/ 项目结构 + CLAUDE.md（harness 生成，所有 agent 共享上下文）
+Stage 4 → design/*.html
+Stage 5 → tests/
+Stage 6 → apps/server/src/
+Stage 7 → apps/web/src/
 ```
 
 ---
 
-## 第二步：按阶段推进
-
----
-
-### Stage 1 — 产品经理：写 PRD
+## Stage 1 — 产品经理：写 PRD
 
 ```bash
 bash "$SKILL_DIR/scripts/update-status.sh" start 1 <project-name>
@@ -87,24 +88,26 @@ Agent(subagent_type="Product Manager", prompt="""
 项目目录：<project-dir>
 任务：输出 PRD 到 <project-dir>/docs/prd-<name>-<date>.md
 
-如需额外交付物可同时要求：
-  - Roadmap (Now/Next/Later)：路线图规划
-  - Go-to-Market Brief：发布计划与 checklist
-  - Sprint Health Snapshot：Sprint 交付状态跟踪
+[迭代模式] 在现有产品基础上追加功能。先读现有 docs/prd-*.md 了解已有范围，
+新 PRD 只描述增量需求，不重复已有内容。
+
+如需额外交付物可同时要求：Roadmap、Go-to-Market Brief、Sprint Health Snapshot
 """)
 ```
 
 **评估：** 痛点真实？MVP ≤ 5 个功能？逻辑闭环？有 Web 前端？
 
 ```bash
-bash "$SKILL_DIR/scripts/update-status.sh" done 1 <project-name>
+# harness 自动验证：PRD 文件存在且有内容
+bash "$SKILL_DIR/scripts/validate-stage.sh" 1 <project-dir> \
+  && bash "$SKILL_DIR/scripts/update-status.sh" done 1 <project-name>
 ```
 
 ---
 
-### Stage 2+3 — 技术架构师：TDD + 初始化
+## Stage 2+3 — 技术架构师：TDD + 初始化
 
-**迭代模式只执行 Phase 1（TDD），跳过 Phase 2（初始化）。**
+**迭代模式只执行 Phase 1（TDD），跳过 Phase 2（模板复制）。**
 
 ```bash
 bash "$SKILL_DIR/scripts/update-status.sh" start 2 <project-name>
@@ -120,22 +123,30 @@ Phase 1 — 写 TDD 到 <project-dir>/docs/tdd-<name>-<date>.md
            React 18 + Vite + TanStack Query + React Router + Tailwind CSS 4（前端）
            bun workspaces monorepo，测试：bun:test + Playwright
 
+[迭代模式 Phase 1] 先读现有 docs/tdd-*.md 了解已有 API 和 Schema，
+新 TDD 只描述增量变更，明确标注「新增」vs「已有」，不修改已有接口签名。
+
 Phase 2（仅新项目）— 初始化骨架：
   使用模板 ~/.claude/agents/fullstack-template/，参考 agent 定义中的初始化步骤
 """)
 ```
 
-**评估 TDD：** 每条用户故事有对应 API？Schema 完整？前后端连接方案？
-**评估骨架：** 服务器能启动？目录结构与 TDD 一致？
+**评估 TDD：** 每条用户故事有对应 API？Schema 完整？前后端连接方案？  
+**评估骨架：** 目录结构与 TDD 一致？
 
 ```bash
-bash "$SKILL_DIR/scripts/update-status.sh" done 2 <project-name>
-bash "$SKILL_DIR/scripts/update-status.sh" done 3 <project-name>
+# harness 自动验证 + 生成项目 CLAUDE.md（统一所有 agent 的上下文）
+bash "$SKILL_DIR/scripts/validate-stage.sh" 2 <project-dir> \
+  && bash "$SKILL_DIR/scripts/update-status.sh" done 2 <project-name>
+
+bash "$SKILL_DIR/scripts/validate-stage.sh" 3 <project-dir> \
+  && bash "$SKILL_DIR/scripts/gen-claude-md.sh" <project-dir> \
+  && bash "$SKILL_DIR/scripts/update-status.sh" done 3 <project-name>
 ```
 
 ---
 
-### Stage 4+5 — UI 设计师 + 测试工程师：并行
+## Stage 4+5 — UI 设计师 + 测试工程师：并行
 
 **两者都只依赖 TDD，并发启动节省约 800 秒。**
 
@@ -147,14 +158,20 @@ bash "$SKILL_DIR/scripts/update-status.sh" start 5 <project-name>
 ```
 # 同时 spawn，不等待彼此
 Agent(subagent_type="UI Designer", prompt="""
-输入：<project-dir>/docs/prd-*.md 和 tdd-*.md
+输入：<project-dir>/docs/prd-*.md 和 tdd-*.md，以及 CLAUDE.md
 输出：<project-dir>/design/（每个路由一个 HTML 文件）
+
+[迭代模式] 只为新增页面/功能创建原型。不修改 design/ 中已有文件。
+新原型的视觉风格必须与现有 design/*.html 保持一致（颜色、字体、组件样式）。
 """)
 
 Agent(subagent_type="Test Engineer", prompt="""
 模式：Stage 5 第一轮（unit + api，暂不写 E2E）
-输入：<project-dir>/docs/prd-*.md、tdd-*.md、apps/server/src/
+输入：<project-dir>/docs/prd-*.md、tdd-*.md、CLAUDE.md、apps/server/src/
 输出：tests/unit/（全通）、tests/api/（全红）、playwright.config.ts
+
+[迭代模式] 在现有 tests/ 基础上追加，不覆盖已有文件。
+追加前先运行 bun test tests/unit/ tests/api/ 确认现有测试基线全通。
 """)
 ```
 
@@ -163,22 +180,27 @@ Agent(subagent_type="Test Engineer", prompt="""
 ```
 Agent(subagent_type="Test Engineer", prompt="""
 模式：Stage 5 第二轮（补写 E2E）
-design/ 已完成，路径：<project-dir>/design/
+design/ 已完成：<project-dir>/design/
 PRD：<project-dir>/docs/prd-*.md
+CLAUDE.md：<project-dir>/CLAUDE.md
 输出：tests/e2e/（每条用户故事一个 spec）
+
+[迭代模式] 只为新功能添加 spec 文件，不修改已有 spec。
 """)
 ```
 
 **评估：** 每个路由有原型？unit 全通？api 全红？每条用户故事有 E2E？
 
 ```bash
-bash "$SKILL_DIR/scripts/update-status.sh" done 4 <project-name>
-bash "$SKILL_DIR/scripts/update-status.sh" done 5 <project-name>
+bash "$SKILL_DIR/scripts/validate-stage.sh" 4 <project-dir> \
+  && bash "$SKILL_DIR/scripts/update-status.sh" done 4 <project-name>
+bash "$SKILL_DIR/scripts/validate-stage.sh" 5 <project-dir> \
+  && bash "$SKILL_DIR/scripts/update-status.sh" done 5 <project-name>
 ```
 
 ---
 
-### Stage 6 — 后端工程师：实现 API
+## Stage 6 — 后端工程师：实现 API
 
 ```bash
 bash "$SKILL_DIR/scripts/update-status.sh" start 6 <project-name>
@@ -186,21 +208,26 @@ bash "$SKILL_DIR/scripts/update-status.sh" start 6 <project-name>
 
 ```
 Agent(subagent_type="Backend Engineer", prompt="""
-输入：<project-dir>/docs/tdd-*.md、tests/unit/、tests/api/、apps/server/src/
+输入：<project-dir>/docs/tdd-*.md、CLAUDE.md、tests/unit/、tests/api/、apps/server/src/
 任务：实现 apps/server/src/ 下所有 API
 完成标准：bun test tests/unit/ tests/api/ 全部 0 fail
+
+[迭代模式] 先运行 bun test tests/unit/ tests/api/ 确认基线全通（不能有预存失败）。
+只新增路由和逻辑，不修改已有路由的请求/响应格式。
+完成后确认：原有测试仍然全通。
 """)
 ```
 
-**评估：** 0 fail？错误响应格式统一（`{ error, code }`）？
+**harness 自动运行测试——不信任 agent 的自我报告：**
 
 ```bash
-bash "$SKILL_DIR/scripts/update-status.sh" done 6 <project-name>
+bash "$SKILL_DIR/scripts/validate-stage.sh" 6 <project-dir> \
+  && bash "$SKILL_DIR/scripts/update-status.sh" done 6 <project-name>
 ```
 
 ---
 
-### Stage 7 — 前端工程师：实现界面
+## Stage 7 — 前端工程师：实现界面
 
 ```bash
 bash "$SKILL_DIR/scripts/update-status.sh" start 7 <project-name>
@@ -208,33 +235,36 @@ bash "$SKILL_DIR/scripts/update-status.sh" start 7 <project-name>
 
 ```
 Agent(subagent_type="Frontend Engineer", prompt="""
-输入：<project-dir>/design/、docs/tdd-*.md、tests/e2e/、apps/server/src/routes/
+输入：<project-dir>/design/、CLAUDE.md、docs/tdd-*.md、tests/e2e/、apps/server/src/routes/
 任务：实现 apps/web/src/ 下所有页面和组件
-完成标准：bun run build 0 错误 + headless 浏览器验证所有路由 0 console.error
+完成标准：bun run build 0 错误 + 所有路由 headless 验证通过
+
+[迭代模式] 只实现新增页面和组件，不修改已有 apps/web/src/ 文件（除非 TDD 明确要求）。
+新组件风格必须与现有页面一致。
 """)
 ```
 
-**评估（总监必须运行 headless 验证，不接受只 curl）：**
-```typescript
-import { chromium } from 'playwright'
-const browser = await chromium.launch({ headless: true })
-for (const route of allRoutes) {
-  const page = await browser.newPage()
-  const errors: string[] = []
-  page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()) })
-  await page.goto(`http://localhost:5173${route}`, { waitUntil: 'networkidle' })
-  console.log(`${route}: ${errors.length} errors`)
-  await page.close()
-}
-```
+**harness 验证（脚本代替手写 Playwright）：**
 
 ```bash
+# 先验证构建
+bash "$SKILL_DIR/scripts/validate-stage.sh" 7 <project-dir>
+
+# 再启动 dev server 做浏览器验证（从 TDD 或 design/ 提取所有路由）
+cd <project-dir>/apps/server && bun run src/index.ts &
+cd <project-dir>/apps/web && bun run dev &
+sleep 4
+
+bun run "$SKILL_DIR/scripts/verify-browser.ts" \
+  http://localhost:5173 \
+  / /dashboard /transactions /reports /accounts  # ← 替换为实际路由
+
 bash "$SKILL_DIR/scripts/update-status.sh" done 7 <project-name>
 ```
 
 ---
 
-### Stage 8 — 技术评审：代码审查
+## Stage 8 — 技术评审：代码审查
 
 ```bash
 bash "$SKILL_DIR/scripts/update-status.sh" start 8 <project-name>
@@ -242,8 +272,10 @@ bash "$SKILL_DIR/scripts/update-status.sh" start 8 <project-name>
 
 ```
 Agent(subagent_type="Code Reviewer", prompt="""
-输入：<project-dir>/apps/server/src/ 和 apps/web/src/
+输入：<project-dir>/apps/server/src/ 和 apps/web/src/，以及 CLAUDE.md
 任务：审查前后端代码，输出结构化报告（🔴 Blocker / 🟡 Suggestion / 💭 Nit）
+
+[迭代模式] 重点检查：新代码是否破坏了已有接口契约？新接口的错误格式是否与 CLAUDE.md 约定一致？
 """)
 ```
 
@@ -255,9 +287,12 @@ bash "$SKILL_DIR/scripts/update-status.sh" done 8 <project-name>
 
 ---
 
-### Stage 9 — 测试工程师：全量验收
+## Stage 9 — 测试工程师：全量验收
 
 ```bash
+# harness：先检查端口，再启动服务
+bash "$SKILL_DIR/scripts/check-ports.sh" || bash "$SKILL_DIR/scripts/check-ports.sh" --kill
+
 bash "$SKILL_DIR/scripts/update-status.sh" start 9 <project-name>
 ```
 
@@ -266,19 +301,29 @@ Agent(subagent_type="Test Engineer", prompt="""
 模式：Stage 9 — QA 验收
 项目目录：<project-dir>
 后端在 localhost:3000，前端 dev server 在 localhost:5173（已运行）
+
+任务：
+  1. bun test tests/unit/ tests/api/ — 必须 0 fail
+  2. bunx playwright test — 目标 0 fail
+     测试 bug（selector 过宽、toHaveURL 含 ^ 锚点）：自行修复
+     实现 bug：整理清单报给总监
+  3. 调用 bun run "$SKILL_DIR/scripts/verify-browser.ts" 验证所有路由
+
+[迭代模式] 所有测试（新功能 + 已有功能）必须全部 0 fail。
 输出：分层测试报告 + SHIP IT ✅ / NEEDS WORK ❌
 """)
 ```
 
-**评估：** 0 fail + SHIP IT。不通过则按清单 spawn 对应工程师修复，再重新验收。
+**harness 自动验证单元/API 测试（不依赖 agent 自报）：**
 
 ```bash
-bash "$SKILL_DIR/scripts/update-status.sh" done 9 <project-name>
+bash "$SKILL_DIR/scripts/validate-stage.sh" 9 <project-dir> \
+  && bash "$SKILL_DIR/scripts/update-status.sh" done 9 <project-name>
 ```
 
 ---
 
-### Stage 10 — DevOps：部署上线
+## Stage 10 — DevOps：部署上线
 
 ```bash
 bash "$SKILL_DIR/scripts/update-status.sh" start 10 <project-name>
@@ -288,19 +333,22 @@ bash "$SKILL_DIR/scripts/update-status.sh" start 10 <project-name>
 Agent(subagent_type="DevOps Engineer", prompt="""
 项目目录：<project-dir>
 任务：构建前端、配置后端静态文件服务、启动生产服务器、headless 浏览器验证
+验证命令：bun run "$SKILL_DIR/scripts/verify-browser.ts" http://localhost:3000 <routes...>
 输出：可访问的生产地址
 """)
 ```
 
-**评估：** headless 所有路由 0 console.error + 核心用户路径可操作。
+**harness 验证：**
 
 ```bash
-bash "$SKILL_DIR/scripts/update-status.sh" done 10 <project-name>
+bash "$SKILL_DIR/scripts/validate-stage.sh" 10 <project-dir> \
+  && bun run "$SKILL_DIR/scripts/verify-browser.ts" http://localhost:3000 / <其他路由> \
+  && bash "$SKILL_DIR/scripts/update-status.sh" done 10 <project-name>
 ```
 
 ---
 
-## 第三步：交付验收
+## 交付验收
 
 ```
 ### 交付完成 🎉
@@ -323,8 +371,8 @@ bash "$SKILL_DIR/scripts/rollback-deploy.sh" <project-name>
 
 ## 总监原则
 
-- **主动质疑**：每个阶段产出独立判断，不是"写完了就对了"
-- **总监只评估不执行**：spawn agent，等结果，不自己动手
+- **脚本验证优先**：validate-stage.sh 说不通过就是不通过，不接受 agent 的解释
+- **总监只评估不执行**：spawn agent，等结果，自己不动代码
 - **一次说清楚**：fix 任务包含完整背景和所有已知问题
-- **早发现早干预**：PRD 阶段发现问题比 dev 阶段便宜 10 倍
-- **生产验证是终点**：headless 浏览器通过才算交付
+- **迭代不等于重来**：迭代模式每个阶段都要保护现有功能，不退化
+- **生产验证是终点**：verify-browser.ts 全通才算交付
