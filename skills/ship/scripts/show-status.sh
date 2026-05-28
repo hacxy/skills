@@ -3,7 +3,7 @@
 # 用法: bash show-status.sh [status_file]
 # 搭配 watch: watch -n 1 bash show-status.sh
 
-STATUS_FILE="${1:-.workflow-status.json}"
+STATUS_FILE="${1:-$HOME/.claude/skills/ship/workflow/$(basename "$PWD").json}"
 
 if [ ! -f "$STATUS_FILE" ]; then
   echo "⬜  Workflow has not started yet."

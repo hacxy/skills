@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 更新 workflow 状态文件（存放于 ~/.workflow/，不污染项目）
+# 更新 workflow 状态文件（存放于 ~/.claude/skills/ship/workflow/）
 # 用法:
 #   update-status.sh init <project> <mode>               # 初始化
 #   update-status.sh start <stage_id> [project]          # 阶段开始
@@ -8,7 +8,7 @@
 #   update-status.sh rollback <stage_id> [project]       # 回滚到指定阶段完成时的状态
 set -euo pipefail
 
-WORKFLOW_DIR="$HOME/.workflow"
+WORKFLOW_DIR="$HOME/.claude/skills/ship/workflow"
 mkdir -p "$WORKFLOW_DIR"
 
 STAGES=("write-prd" "write-tdd" "scaffold-project" "frontend-design" "write-tests" "backend-dev" "frontend-dev" "code-review" "test" "deploy")
@@ -23,11 +23,19 @@ case "${1:-}" in
     MODE="${3:-new-project}"
     STATUS_FILE="$WORKFLOW_DIR/$PROJECT.json"
     log "Initializing: $PROJECT ($MODE) → $STATUS_FILE"
+    # 迭代模式下跳过 Stage 3（scaffold-project）
+    SKIP_STAGES=()
+    [ "$MODE" = "iteration" ] && SKIP_STAGES=(3)
+
     STAGES_JSON="[]"
     for i in "${!STAGES[@]}"; do
       STAGE_ID=$((i + 1))
       STAGE_NAME="${STAGES[$i]}"
-      ENTRY="{\"id\":$STAGE_ID,\"name\":\"$STAGE_NAME\",\"status\":\"pending\",\"started_at\":null,\"ended_at\":null,\"git_hash\":null}"
+      STATUS="pending"
+      for SKIP in "${SKIP_STAGES[@]}"; do
+        [ "$STAGE_ID" -eq "$SKIP" ] && STATUS="skipped"
+      done
+      ENTRY="{\"id\":$STAGE_ID,\"name\":\"$STAGE_NAME\",\"status\":\"$STATUS\",\"started_at\":null,\"ended_at\":null,\"git_hash\":null}"
       STAGES_JSON=$(echo "$STAGES_JSON" | jq ". + [$ENTRY]")
     done
     cat > "$STATUS_FILE" << ENDJSON
@@ -58,7 +66,7 @@ ENDJSON
     PROJECT="${3:-$(basename "$PWD")}"
     STATUS_FILE="$WORKFLOW_DIR/$PROJECT.json"
     NOW=$(now)
-    STARTED=$(jq ".stages[] | select(.id == $STAGE_ID) | .started_at" "$STATUS_FILE")
+    STARTED=$(jq ".stages[] | select(.id == $STAGE_ID) | .started_at // $NOW" "$STATUS_FILE")
     DURATION=$((NOW - STARTED))
     HASH=$(git_hash)
     log "Stage $STAGE_ID → done (${DURATION}s) @ ${HASH:0:8}"

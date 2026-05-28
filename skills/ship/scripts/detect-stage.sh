@@ -3,6 +3,9 @@ set -euo pipefail
 
 log() { echo "[detect-stage] $*" >&2; }
 
+PROJECT_DIR="${1:-$PWD}"
+cd "$PROJECT_DIR"
+
 HAS_PRD=false
 HAS_TDD=false
 HAS_SCAFFOLD=false
@@ -19,7 +22,7 @@ git log --oneline -1 2>/dev/null && HAS_COMMITS=true || true
 
 # 统计业务源码文件数（排除 node_modules 和脚手架默认文件）
 if [ "$HAS_SCAFFOLD" = true ]; then
-  SRC_FILE_COUNT=$(find src -name "*.ts" -o -name "*.tsx" 2>/dev/null \
+  SRC_FILE_COUNT=$(find apps/server/src apps/web/src -name "*.ts" -o -name "*.tsx" 2>/dev/null \
     | grep -v node_modules \
     | grep -v "\.d\.ts" \
     | wc -l \

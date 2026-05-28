@@ -1,14 +1,32 @@
 #!/usr/bin/env bash
-# validate-stage.sh <stage_id> <project_dir>
-# 每个 Stage 完成时自动验证产出——脚本能做的事不交给 LLM 判断
-# 返回 0 = 通过，1 = 失败（调用方在失败时不应 mark done）
+# validate-stage.sh <stage_id> <project_dir> [project_name]
+# 每个 Stage 完成时自动验证产出，验证结果自动写入 workflow 状态
+# 返回 0 = 通过（自动 done），1 = 失败（自动 fail）
 set -euo pipefail
 
 STAGE="${1:-}"
 PROJECT_DIR="${2:-$PWD}"
+PROJECT_NAME="${3:-$(basename "${PROJECT_DIR:-$PWD}")}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+UPDATE_SH="$SCRIPT_DIR/update-status.sh"
 
-pass() { echo "[validate] ✅ Stage $STAGE: $*"; }
-fail() { echo "[validate] ❌ Stage $STAGE: $*" >&2; exit 1; }
+# 验证通过：打印消息，标记为 done
+pass() {
+  echo "[validate] ✅ Stage $STAGE: $*"
+}
+
+# 验证失败：打印消息，自动标记为 failed，退出 1
+fail() {
+  local msg="${1:-failed}"
+  # 只取首行作为 reason（避免多行/引号破坏 JSON）
+  local reason
+  reason=$(printf '%s' "$msg" | head -1 | tr '"' "'" | cut -c1-120)
+  echo "[validate] ❌ Stage $STAGE: $msg" >&2
+  bash "$UPDATE_SH" fail "$STAGE" "$reason" "$PROJECT_NAME" 2>/dev/null || true
+  exit 1
+}
+
+AUTO_DONE=true
 
 case "$STAGE" in
   1)
@@ -33,7 +51,7 @@ case "$STAGE" in
     [ -f "$PROJECT_DIR/package.json" ] \
       || fail "workspace package.json 缺失"
     # 验证服务器能启动
-    (cd "$PROJECT_DIR/apps/server" && bun run src/index.ts &)
+    (cd "$PROJECT_DIR/apps/server" && exec bun run src/index.ts) &
     SERVER_PID=$!
     sleep 3
     if curl -sf http://localhost:3000 > /dev/null 2>&1 || \
@@ -95,5 +113,11 @@ case "$STAGE" in
 
   *)
     echo "[validate] Stage $STAGE 无自动验证，跳过"
+    AUTO_DONE=false
     ;;
 esac
+
+# 验证通过后自动标记 done（*) 跳过的阶段由总监手动调用）
+if [ "$AUTO_DONE" = true ]; then
+  bash "$UPDATE_SH" done "$STAGE" "$PROJECT_NAME"
+fi
