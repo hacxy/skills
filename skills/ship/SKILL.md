@@ -112,6 +112,41 @@ bash "$SKILL_DIR/scripts/update-status.sh" plan "<stage_ids>" <project-name>
 - Stage 6 与 Stage 7 串行，前端依赖后端 API 契约
 - 任何不存在产出依赖的 Stage 都可以并行
 
+### 开发与测试 Agent 拆分（大型项目）
+
+单个 agent 有上下文窗口和质量上限。任务量大时，总监按领域拆分并行 spawn：
+
+**Test Engineer 拆分基准（Stage 5）：**
+
+| Endpoint / 用户故事数 | 策略 |
+|---|---|
+| ≤ 8 | 单 agent |
+| 9–15 | 按路由组拆分成 2 个并行 agent |
+| 16+ | 拆分成 3 个并行 agent |
+
+**拆分前置条件：** 先由单个 Test Engineer 创建 `tests/_helpers.ts`（测试工具函数、auth helper、db reset 等共享基础），再拆分并行。E2E 拆分分组与 Frontend Engineer 的页面分组保持一致。
+
+**Backend Engineer 拆分基准（从 TDD 统计 endpoint 数量）：**
+
+| Endpoint 数 | 策略 |
+|---|---|
+| ≤ 8 | 单个 agent |
+| 9–15 | 按资源域拆分成 2 个并行 agent |
+| 16+ | 拆分成 3 个并行 agent，每个负责独立模块 |
+
+**Frontend Engineer 拆分基准（从 TDD/design/ 统计页面数量）：**
+
+| 页面数 | 策略 |
+|---|---|
+| ≤ 4 | 单个 agent |
+| 5–8 | 拆分成 2 个并行 agent，每个负责 2–4 个页面 |
+| 9+ | 拆分成 3 个并行 agent |
+
+**拆分时的刚性规则：**
+- 每个 agent 的 prompt 必须明确列出"你负责的路由/页面"和"你不能碰的文件"
+- `schema.ts`、`db/client.ts`、`index.ts` 等共享文件：在拆分前由总监或 Tech Architect 完成，所有 agent 只读不写
+- 拆分后的 agent 并行完成，总监汇总后统一运行 validate-stage.sh
+
 ---
 
 ## 质量评估框架
@@ -155,6 +190,7 @@ bash "$SKILL_DIR/scripts/update-status.sh" plan "<stage_ids>" <project-name>
 | `migration-path-check.sh` | Stage 3 后：验证 drizzle.config.ts out 与 client.ts migrationsFolder 一致 |
 | `env-sync-check.sh` | Stage 10 前：验证 .env.example / deploy.yml / 代码三处环境变量对齐 |
 | `nginx-proxy-check.sh` | Stage 10 前：验证 nginx 模板包含所有非 /api/ 路由的 proxy 块 |
+| `screenshot-routes.ts` | Stage 7 后：截图所有路由 + design/ 原型，供视觉审查 |
 | `retro.sh` | 交付后：采集运行数据，生成复盘 context 文件 |
 | `show-status.sh` | 随时：查看当前项目各阶段状态 |
 
@@ -270,7 +306,12 @@ bash "$SKILL_DIR/scripts/validate-stage.sh" 4 <project-dir> <project-name>
 bash "$SKILL_DIR/scripts/update-status.sh" start 5 <project-name>
 ```
 
+**总监先统计 endpoint 数量，决定单 agent 还是多 agent 并行（见动态调度规则）。**
+
 ```
+# 小型项目（≤ 8 个 endpoint）：单 agent 两轮
+
+# 第一轮：unit + api 测试骨架
 Agent(subagent_type="Test Engineer", prompt="""
 模式：Stage 5 第一轮（unit + api，暂不写 E2E）
 输入：<project-dir>/docs/prd-*.md、tdd-*.md、CLAUDE.md、apps/server/src/
@@ -284,7 +325,37 @@ Agent(subagent_type="Test Engineer", prompt="""
 带认证态的 createAuthTestSetup() 工厂，避免 Stage 9 才发现 E2E 全失败。
 """)
 
-# Stage 4 和 Stage 5 完成后，补写 E2E
+# 大型项目（9+ endpoint）：先建共享基础，再并行拆分
+
+# 步骤 1：单 agent 先建共享基础（不可并行）
+Agent(subagent_type="Test Engineer", prompt="""
+模式：Stage 5 前置（创建共享测试基础）
+输入：<project-dir>/docs/tdd-*.md、CLAUDE.md
+任务：只创建 tests/_helpers.ts（db reset、auth helper、通用工厂函数）
+      和 tests/unit/（全通），不写 api 测试
+完成后报告：helpers 导出了哪些函数，供后续 agent 使用
+""")
+
+# 步骤 2：并行 spawn 多个 Test Engineer 写 api 测试
+Agent(subagent_type="Test Engineer", prompt="""
+模式：Stage 5 第一轮（api 测试，分组 A）
+输入：<project-dir>/docs/tdd-*.md、CLAUDE.md、tests/_helpers.ts
+你负责的路由：<route-group-A>（如 /users、/auth）
+输出：tests/api/<route-group-A>/（全红）
+禁止修改：tests/_helpers.ts、tests/unit/（只读）
+""")
+
+Agent(subagent_type="Test Engineer", prompt="""
+模式：Stage 5 第一轮（api 测试，分组 B）
+输入：<project-dir>/docs/tdd-*.md、CLAUDE.md、tests/_helpers.ts
+你负责的路由：<route-group-B>（如 /orders、/products）
+输出：tests/api/<route-group-B>/（全红）
+禁止修改：tests/_helpers.ts、tests/unit/（只读）
+""")
+
+# Stage 4 和 Stage 5 第一轮完成后，补写 E2E（分组与 Frontend 页面分组一致）
+
+# 小型项目：单 agent
 Agent(subagent_type="Test Engineer", prompt="""
 模式：Stage 5 第二轮（补写 E2E）
 design/ 已完成：<project-dir>/design/
@@ -293,6 +364,23 @@ CLAUDE.md：<project-dir>/CLAUDE.md
 输出：tests/e2e/（每条用户故事一个 spec）
 
 [迭代模式] 只为新功能添加 spec 文件，不修改已有 spec。
+""")
+
+# 大型项目：E2E 按页面分组并行（与 Frontend Engineer 分组保持一致）
+Agent(subagent_type="Test Engineer", prompt="""
+模式：Stage 5 第二轮（补写 E2E，分组 A）
+你负责的页面：<page-group-A>（如 dashboard、orders）
+design/：<project-dir>/design/
+PRD：<project-dir>/docs/prd-*.md
+输出：tests/e2e/<page-group-A>/
+""")
+
+Agent(subagent_type="Test Engineer", prompt="""
+模式：Stage 5 第二轮（补写 E2E，分组 B）
+你负责的页面：<page-group-B>（如 products、analytics）
+design/：<project-dir>/design/
+PRD：<project-dir>/docs/prd-*.md
+输出：tests/e2e/<page-group-B>/
 """)
 ```
 
@@ -308,7 +396,10 @@ bash "$SKILL_DIR/scripts/validate-stage.sh" 5 <project-dir> <project-name>
 bash "$SKILL_DIR/scripts/update-status.sh" start 6 <project-name>
 ```
 
+**总监先评估 endpoint 数量，再决定单 agent 还是多 agent 并行（见动态调度规则）。**
+
 ```
+# 小型项目（≤ 8 个 endpoint）：单 agent
 Agent(subagent_type="Backend Engineer", prompt="""
 输入：<project-dir>/docs/tdd-*.md、CLAUDE.md、tests/unit/、tests/api/、apps/server/src/
 任务：实现 apps/server/src/ 下所有 API
@@ -317,6 +408,21 @@ Agent(subagent_type="Backend Engineer", prompt="""
 [迭代模式] 先运行 bun test tests/unit/ tests/api/ 确认基线全通（不能有预存失败）。
 只新增路由和逻辑，不修改已有路由的请求/响应格式。
 完成后确认：原有测试仍然全通。
+""")
+
+# 大型项目（9+ endpoint）：按资源域拆分，并行 spawn
+Agent(subagent_type="Backend Engineer", prompt="""
+输入：<project-dir>/docs/tdd-*.md、CLAUDE.md、tests/unit/、tests/api/、apps/server/src/
+你负责的路由：<route-group-A>（如 /users、/auth）
+禁止修改：schema.ts、db/client.ts、index.ts（共享文件，只读）
+任务：只实现你负责的路由，完成标准：对应 api 测试全部 0 fail
+""")
+
+Agent(subagent_type="Backend Engineer", prompt="""
+输入：<project-dir>/docs/tdd-*.md、CLAUDE.md、tests/unit/、tests/api/、apps/server/src/
+你负责的路由：<route-group-B>（如 /orders、/products）
+禁止修改：schema.ts、db/client.ts、index.ts（共享文件，只读）
+任务：只实现你负责的路由，完成标准：对应 api 测试全部 0 fail
 """)
 ```
 
@@ -332,7 +438,10 @@ bash "$SKILL_DIR/scripts/validate-stage.sh" 6 <project-dir> <project-name>
 bash "$SKILL_DIR/scripts/update-status.sh" start 7 <project-name>
 ```
 
+**总监先统计页面数量，再决定单 agent 还是多 agent 并行（见动态调度规则）。**
+
 ```
+# 小型项目（≤ 4 页）：单 agent
 Agent(subagent_type="Frontend Engineer", prompt="""
 输入：<project-dir>/design/、CLAUDE.md、docs/tdd-*.md、tests/e2e/、apps/server/src/routes/
 任务：实现 apps/web/src/ 下所有页面和组件
@@ -340,6 +449,23 @@ Agent(subagent_type="Frontend Engineer", prompt="""
 
 [迭代模式] 只实现新增页面和组件，不修改已有 apps/web/src/ 文件（除非 TDD 明确要求）。
 新组件风格必须与现有页面一致。
+""")
+
+# 大型项目（5+ 页）：按页面批次拆分，并行 spawn
+Agent(subagent_type="Frontend Engineer", prompt="""
+输入：<project-dir>/design/、CLAUDE.md、docs/tdd-*.md、tests/e2e/、apps/server/src/routes/
+你负责的页面：<page-group-A>（如 dashboard.html、orders.html）
+禁止修改：src/router.tsx、src/lib/fetchApi.ts、src/lib/queryKeys.ts（共享文件，只读）
+任务：只实现你负责的页面，完成标准：对应 E2E 测试全部通过 + build 0 错误
+风格必须与 design/ 中其他已有页面完全一致。
+""")
+
+Agent(subagent_type="Frontend Engineer", prompt="""
+输入：<project-dir>/design/、CLAUDE.md、docs/tdd-*.md、tests/e2e/、apps/server/src/routes/
+你负责的页面：<page-group-B>（如 products.html、analytics.html）
+禁止修改：src/router.tsx、src/lib/fetchApi.ts、src/lib/queryKeys.ts（共享文件，只读）
+任务：只实现你负责的页面，完成标准：对应 E2E 测试全部通过 + build 0 错误
+风格必须与 design/ 中其他已有页面完全一致。
 """)
 ```
 
@@ -354,6 +480,57 @@ bun run "$SKILL_DIR/scripts/verify-browser.ts" \
   http://localhost:5173 \
   / /dashboard /transactions /reports /accounts  # ← 替换为实际路由
 ```
+
+---
+
+### 视觉审查（Stage 7 完成后，Stage 8 之前）
+
+**功能验证不等于视觉合格。** 截图对比找出代码层不可见的样式问题：间距偏差、颜色不符、组件未对齐、空状态缺失等。
+
+```bash
+# dev server 保持运行，截图所有路由 + design/ 原型
+SCREENSHOT_DIR=$(bun run "$SKILL_DIR/scripts/screenshot-routes.ts" \
+  <project-dir> / /dashboard /orders  # ← 替换为实际路由
+)
+```
+
+```
+Agent(subagent_type="Test Engineer", prompt="""
+模式：Visual QA — 对比原型设计和实际实现，找出所有视觉差异。
+
+截图目录：$SCREENSHOT_DIR
+- $SCREENSHOT_DIR/app/    — 实际实现截图（每个路由一张）
+- $SCREENSHOT_DIR/design/ — design/ 原型截图（每个 HTML 文件一张）
+
+逐页对比：读取 app/ 和 design/ 中对应页面的截图，识别差异。
+文件名对应规则：app/home.png ↔ design/dashboard.html 之类，根据内容判断对应关系。
+
+输出结构化报告：
+
+## 视觉审查报告
+
+### [页面名称]
+🔴 严重（影响使用/明显错误）：
+- [具体问题，如"底部导航栏缺失"]
+
+🟡 中等（视觉不一致）：
+- [具体问题，如"卡片间距 8px，原型是 16px"]
+
+💭 轻微（细节差异）：
+- [具体问题，如"按钮圆角偏小"]
+
+---
+
+## 汇总
+- 严重问题：N 个
+- 中等问题：N 个
+- 建议：[是否需要 Frontend Engineer 修复后再进入 Code Review]
+""")
+```
+
+**总监决策：**
+- 有 🔴 严重问题 → spawn Frontend Engineer 定点修复 → 重新截图验证
+- 只有 🟡/💭 → 记录到 director-log，可继续进入 Stage 8
 
 ---
 
