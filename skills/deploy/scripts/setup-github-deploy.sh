@@ -66,7 +66,7 @@ NGINX_EXISTS=$([ -f "$NGINX_CONF" ] && echo "1" || echo "0")
 SERVICE_EXISTS=$([ -f "$SERVICE_FILE" ] && echo "1" || echo "0")
 SSL_CERT=$(ls /etc/nginx/ssl/*/fullchain.cer 2>/dev/null | head -1 || true)
 SSL_KEY=$([ -n "$SSL_CERT" ] && ls "$(dirname "$SSL_CERT")"/*.key 2>/dev/null | head -1 || true)
-echo "PORTS=$PORTS"
+echo "PORTS='${PORTS}'"
 echo "EXISTING=$EXISTING"
 echo "NGINX_EXISTS=$NGINX_EXISTS"
 echo "SERVICE_EXISTS=$SERVICE_EXISTS"
@@ -74,16 +74,16 @@ echo "SSL_CERT=$SSL_CERT"
 echo "SSL_KEY=$SSL_KEY"
 QUERY
 )
-eval "$SERVER_STATE"
+eval "$(echo "$SERVER_STATE" | tr -d '\r')"
 
 # 确定端口
 if [ -n "${EXISTING:-}" ]; then
     APP_PORT="$EXISTING"
-    log "   端口：$APP_PORT（已有）"
+    log "   端口：${APP_PORT}（已有）"
 else
     APP_PORT=3000
     while echo " ${PORTS:-} " | grep -q " $APP_PORT "; do APP_PORT=$((APP_PORT + 1)); done
-    log "   端口：$APP_PORT（新分配）"
+    log "   端口：${APP_PORT}（新分配）"
 fi
 
 # 准备目录
