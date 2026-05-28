@@ -1,58 +1,85 @@
 #!/usr/bin/env bash
 # deploy.sh <project-dir> [app-name]
 #
-# SSH 登录用户固定为 deploy，全程使用 sudo 执行特权操作
-# 首次运行：生成 ~/.config/ship/<app>.conf 配置文件模板
-# 后续运行：读取配置文件，执行完整部署
+# 全局配置文件：~/.config/ship/server.conf（所有项目共用）
+# 域名：<app>.<BASE_DOMAIN>（自动生成）
+# 目录：/srv/projects/<app>（固定）
+# 端口：从 3000 起自动检测下一个可用端口
+# 密钥：deploy 用户统一一个 key
 
 set -euo pipefail
 
 PROJECT_DIR="${1:?Usage: deploy.sh <project-dir> [app-name]}"
 APP_NAME="${2:-$(basename "$PROJECT_DIR")}"
-CONF_FILE="$HOME/.config/ship/${APP_NAME}.conf"
+CONF_FILE="$HOME/.config/ship/server.conf"
 SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 log()  { echo "[deploy] $*"; }
 fail() { echo "[deploy] ❌ $*" >&2; exit 1; }
 
-# ── 首次运行：生成配置文件 ────────────────────────────────────────────────────
+# ── 首次运行：生成全局配置文件 ────────────────────────────────────────────────
 if [ ! -f "$CONF_FILE" ]; then
     mkdir -p "$(dirname "$CONF_FILE")"
     cat > "$CONF_FILE" << CONF
-# 部署配置：$APP_NAME
-# 保存在本地，不提交到仓库
+# Ship 全局部署配置（所有项目共用，保存在本地，不提交到仓库）
 
-SSH_HOST=           # 服务器地址或 IP（支持 ~/.ssh/config 里的别名）
-SSH_PORT=22         # SSH 端口
-DEPLOY_KEY=~/.ssh/id_ed25519  # deploy 用户的本地私钥路径
+SSH_HOST=           # 服务器地址或 ~/.ssh/config 里的别名
+SSH_PORT=22
+DEPLOY_KEY=~/.ssh/id_ed25519  # deploy 用户的私钥路径
 
-APP_DOMAIN=         # 域名，用于 nginx server_name 和浏览器验证
-APP_PORT=3000       # Elysia 后端监听端口
-REMOTE_DIR=/srv/projects  # 服务器项目根目录
+BASE_DOMAIN=        # 基础域名，应用将部署到 <app>.<BASE_DOMAIN>
 CONF
-    log "配置文件已创建：$CONF_FILE"
-    log "请填写 SSH_HOST、APP_DOMAIN 等信息后重新运行"
+    log "全局配置文件已创建：$CONF_FILE"
+    log "请填写 SSH_HOST 和 BASE_DOMAIN 后重新运行"
     exit 0
 fi
 
 # ── 加载配置 ──────────────────────────────────────────────────────────────────
 source "$CONF_FILE"
 
-[ -z "${SSH_HOST:-}"   ] && fail "SSH_HOST 未填写，请编辑 $CONF_FILE"
-[ -z "${APP_DOMAIN:-}" ] && fail "APP_DOMAIN 未填写，请编辑 $CONF_FILE"
-[ -z "${DEPLOY_KEY:-}" ] && fail "DEPLOY_KEY 未填写，请编辑 $CONF_FILE"
+[ -z "${SSH_HOST:-}"    ] && fail "SSH_HOST 未填写，请编辑 $CONF_FILE"
+[ -z "${BASE_DOMAIN:-}" ] && fail "BASE_DOMAIN 未填写，请编辑 $CONF_FILE"
+[ -z "${DEPLOY_KEY:-}"  ] && fail "DEPLOY_KEY 未填写，请编辑 $CONF_FILE"
 
 DEPLOY_KEY="${DEPLOY_KEY/#\~/$HOME}"
 [ -f "$DEPLOY_KEY" ] || fail "密钥文件不存在：$DEPLOY_KEY"
 
 SSH_OPTS="-i $DEPLOY_KEY -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -p ${SSH_PORT}"
 REMOTE="deploy@${SSH_HOST}"
+
+# 固定值
+REMOTE_DIR="/srv/projects"
+APP_DOMAIN="${APP_NAME}.${BASE_DOMAIN}"
 REMOTE_APP_DIR="${REMOTE_DIR}/${APP_NAME}"
 SERVICE_NAME="${APP_NAME}-server"
 
 log "Host:    ${SSH_HOST}:${SSH_PORT}  (user: deploy)"
 log "App:     ${APP_NAME} → ${REMOTE_APP_DIR}"
 log "Domain:  ${APP_DOMAIN}"
+
+# ── 自动检测可用端口（从 3000 起，扫描服务器上已占用的端口）────────────────────
+log "🔍 Detecting available port..."
+# 读取服务器上所有 *-server.service 的 PORT 环境变量
+USED_PORTS=$(ssh $SSH_OPTS "$REMOTE" \
+    "grep -r 'Environment=PORT=' /etc/systemd/system/*-server.service 2>/dev/null \
+     | grep -o 'PORT=[0-9]*' | cut -d= -f2 | sort -n" 2>/dev/null || echo "")
+
+# 检查该 app 是否已有端口（重新部署时保持不变）
+EXISTING_PORT=$(ssh $SSH_OPTS "$REMOTE" \
+    "grep -s 'Environment=PORT=' /etc/systemd/system/${SERVICE_NAME}.service \
+     | grep -o 'PORT=[0-9]*' | cut -d= -f2" 2>/dev/null || echo "")
+
+if [ -n "$EXISTING_PORT" ]; then
+    APP_PORT="$EXISTING_PORT"
+    log "   复用已有端口：$APP_PORT"
+else
+    # 找 3000 起第一个未被占用的端口
+    APP_PORT=3000
+    while echo "$USED_PORTS" | grep -qx "$APP_PORT"; do
+        APP_PORT=$((APP_PORT + 1))
+    done
+    log "   分配新端口：$APP_PORT"
+fi
 
 # ── 1. 本地编译前端 ───────────────────────────────────────────────────────────
 log "📦 Building frontend..."
@@ -110,11 +137,11 @@ else
     fi
 
     if [ -n "$SSL_CERT" ] && [ -n "$SSL_KEY" ]; then
-        LISTEN_BLOCK="listen 443 ssl;\n    listen [::]:443 ssl;\n    ssl_certificate ${SSL_CERT};\n    ssl_certificate_key ${SSL_KEY};\n    ssl_ciphers HIGH:!aNULL:!MD5;\n    ssl_prefer_server_ciphers on;"
-        REDIRECT="server {\n    listen 80;\n    listen [::]:80;\n    server_name ${APP_DOMAIN};\n    return 301 https://\$host\$request_uri;\n}"
+        LISTEN_CONF="listen 443 ssl;\n    listen [::]:443 ssl;\n    ssl_certificate ${SSL_CERT};\n    ssl_certificate_key ${SSL_KEY};\n    ssl_ciphers HIGH:!aNULL:!MD5;\n    ssl_prefer_server_ciphers on;"
+        REDIRECT_CONF="server {\n    listen 80;\n    listen [::]:80;\n    server_name ${APP_DOMAIN};\n    return 301 https://\$host\$request_uri;\n}"
     else
-        LISTEN_BLOCK="listen 80;\n    listen [::]:80;"
-        REDIRECT=""
+        LISTEN_CONF="listen 80;\n    listen [::]:80;"
+        REDIRECT_CONF=""
     fi
 
     ssh $SSH_OPTS -T "$REMOTE" "sudo tee ${NGINX_CONF} > /dev/null" << NGINX
@@ -136,12 +163,12 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
-    $(printf "$LISTEN_BLOCK")
+    $(printf "$LISTEN_CONF")
 
     access_log /var/log/nginx/${APP_NAME}_access.log;
     error_log  /var/log/nginx/${APP_NAME}_error.log;
 }
-$(printf "$REDIRECT")
+$(printf "$REDIRECT_CONF")
 NGINX
     log "   nginx conf 已写入"
 fi
@@ -177,13 +204,12 @@ WantedBy=multi-user.target
 SERVICE
 
     ssh $SSH_OPTS "$REMOTE" "sudo systemctl daemon-reload && sudo systemctl enable ${SERVICE_NAME}"
-    log "   systemd service 已创建并启用"
 
-    # 为 deploy 用户添加该服务的 restart 权限
+    # 自动配置该 app 的 sudo 权限
     ssh $SSH_OPTS -T "$REMOTE" "sudo tee /etc/sudoers.d/${APP_NAME}-deploy > /dev/null" << SUDOERS
-deploy ALL=(ALL) NOPASSWD: /usr/bin/systemctl start ${SERVICE_NAME}, /usr/bin/systemctl stop ${SERVICE_NAME}, /usr/bin/systemctl restart ${SERVICE_NAME}, /usr/sbin/nginx, /usr/bin/tee /etc/nginx/conf.d/${APP_NAME}.conf, /usr/bin/tee /etc/systemd/system/${SERVICE_NAME}.service
+deploy ALL=(ALL) NOPASSWD: /usr/bin/systemctl start ${SERVICE_NAME}, /usr/bin/systemctl stop ${SERVICE_NAME}, /usr/bin/systemctl restart ${SERVICE_NAME}, /usr/bin/tee /etc/nginx/conf.d/${APP_NAME}.conf, /usr/bin/tee /etc/systemd/system/${SERVICE_NAME}.service
 SUDOERS
-    log "   deploy sudo 权限已配置"
+    log "   服务已创建（端口 ${APP_PORT}）"
 fi
 
 # ── 8. 重启服务 ───────────────────────────────────────────────────────────────
@@ -204,5 +230,6 @@ ssh $SSH_OPTS "$REMOTE" "test -f /etc/nginx/ssl/*/fullchain.cer" 2>/dev/null \
 
 log ""
 log "✅ Deployed: $VERIFY_URL"
+log "   Port:    ${APP_PORT}"
 log "   Config:  $CONF_FILE"
 log "   Logs:    ssh -i $DEPLOY_KEY -p ${SSH_PORT} deploy@${SSH_HOST} 'journalctl -u ${SERVICE_NAME} -f'"
