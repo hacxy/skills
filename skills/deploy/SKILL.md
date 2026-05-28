@@ -47,11 +47,38 @@ BASE_DOMAIN=hacxy.cn          # 基础域名（应用部署到 <app>.<BASE_DOMAI
 
 ---
 
-## 部署命令
+## 部署方式
+
+### 手动部署（本地执行）
 
 ```bash
 bash "$SKILL_DIR/scripts/deploy.sh" <project-dir> [app-name]
 ```
+
+### GitHub Actions 自动部署（推荐）
+
+一次性配置，之后 push 到 main 分支自动触发：
+
+```bash
+bash "$SKILL_DIR/scripts/setup-github-deploy.sh" <project-dir> [app-name]
+```
+
+脚本自动完成：
+1. 生成 GitHub Actions 专用 SSH 密钥（`~/.config/ship/github-deploy.key`，所有项目共用）
+2. 将公钥添加到服务器 deploy 用户
+3. 在项目中生成 `.github/workflows/deploy.yml`
+4. 输出需要填入 GitHub Secrets 的内容
+
+GitHub Secrets 需要配置（Settings → Secrets → Actions）：
+
+| Secret | 说明 |
+|--------|------|
+| `DEPLOY_SSH_KEY` | 脚本输出的私钥内容 |
+| `SSH_HOST` | 服务器地址 |
+| `SSH_PORT` | SSH 端口（默认 22）|
+| `BASE_DOMAIN` | 基础域名 |
+
+配置完成后，push 到 main 分支即可自动部署，也支持在 GitHub Actions 页面手动触发。
 
 app-name 默认取项目目录名。
 
