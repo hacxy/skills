@@ -272,10 +272,18 @@ log "   ✓ .github/workflows/deploy.yml 已生成"
 log ""
 log "── Step 5: GitHub Secrets"
 
-gh secret set DEPLOY_SSH_KEY --body "$(cat "$GH_KEY")"          --repo "$REPO"
-gh secret set SSH_HOST        --body "$SSH_HOST"                  --repo "$REPO"
-gh secret set SSH_PORT        --body "${SSH_PORT:-22}"            --repo "$REPO"
-gh secret set BASE_DOMAIN     --body "$BASE_DOMAIN"              --repo "$REPO"
+# SSH_HOST 可能是 ~/.ssh/config 里的别名（如 "server"），GitHub Actions runner 无法解析
+# 使用 ssh -G 解析出真实 hostname，确保 Actions 能直接连接
+RESOLVED_HOST=$(ssh -G "$SSH_HOST" 2>/dev/null | awk '/^hostname / {print $2}' | head -1)
+if [ -z "$RESOLVED_HOST" ] || [ "$RESOLVED_HOST" = "$SSH_HOST" ]; then
+    RESOLVED_HOST="$SSH_HOST"  # 已经是 IP 或域名，直接使用
+fi
+log "   SSH_HOST: $SSH_HOST → $RESOLVED_HOST（GitHub Actions 使用真实地址）"
+
+gh secret set DEPLOY_SSH_KEY --body "$(cat "$GH_KEY")"    --repo "$REPO"
+gh secret set SSH_HOST        --body "$RESOLVED_HOST"      --repo "$REPO"
+gh secret set SSH_PORT        --body "${SSH_PORT:-22}"     --repo "$REPO"
+gh secret set BASE_DOMAIN     --body "$BASE_DOMAIN"        --repo "$REPO"
 log "   ✓ 4 个 Secrets 已配置"
 
 # ── 6. 提交并推送（触发首次自动部署）────────────────────────────────────────
