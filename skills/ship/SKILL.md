@@ -44,7 +44,7 @@ description: >
 
 ## 总监工作记录（director-log）
 
-每次 ship 开始时创建，全程追加，是总监的跨阶段记忆，也是复盘的原始材料。
+每次 ship 开始时创建，全程追加，是总监的跨阶段记忆。
 
 **路径：** `<project-dir>/docs/director-log-<date>.md`
 
@@ -191,7 +191,6 @@ bash "$SKILL_DIR/scripts/update-status.sh" plan "<stage_ids>" <project-name>
 | `env-sync-check.sh` | Stage 10 前：验证 .env.example / deploy.yml / 代码三处环境变量对齐 |
 | `nginx-proxy-check.sh` | Stage 10 前：验证 nginx 模板包含所有非 /api/ 路由的 proxy 块 |
 | `screenshot-routes.ts` | Stage 7 后：截图所有路由 + design/ 原型，供视觉审查 |
-| `retro.sh` | 交付后：采集运行数据，生成复盘 context 文件 |
 | `show-status.sh` | 随时：查看当前项目各阶段状态 |
 
 ---
@@ -651,62 +650,6 @@ GitHub 仓库：https://github.com/<owner>/<app-name>（私有）
 
 ---
 
-## 复盘（每次 ship 结束后执行）
-
-**无论成功还是中途终止，交付完成后必须触发复盘。**
-
-```bash
-RETRO_CONTEXT=$(bash "$SKILL_DIR/scripts/retro.sh" <project-name> <project-dir>)
-```
-
-```
-Agent(subagent_type="general-purpose", prompt="""
-你是 ship workflow 的复盘分析师。严格按照格式输出，不要省略任何章节。
-
-输入数据：
-- 运行 context：$RETRO_CONTEXT
-- 通用问题库：~/.claude/skills/ship/references/lessons-learned.md
-- 总监工作记录：<project-dir>/docs/director-log-*.md
-
-## 任务 1 — 项目级复盘
-写入 <project-dir>/docs/ship-retro-<YYYY-MM-DD>.md
-
-格式：
-# Ship 复盘 — <project-name>（<date>）
-
-## 执行摘要
-总耗时、完成 Stage 数、发生 retry 的 Stage、总监质疑处理情况
-
-## 需求层（PRD 遗漏边界、用户故事歧义、验收标准不清晰）
-每条：现象 → 根因 → 下次建议。无问题写：无
-
-## 架构层（Schema 设计缺陷、API 接口定义不合理、模块划分问题）
-
-## 实现层（代码 bug、前后端契约不一致、依赖问题）
-
-## 测试层（覆盖场景遗漏、E2E spec 不完整、测试假设错误）
-
-## 环境层（配置缺失、端口冲突、部署依赖问题）
-
-## 任务 2 — 更新通用问题库
-读取现有 ~/.claude/skills/ship/references/lessons-learned.md
-
-判断标准：换一个项目还会再遇到 → 通用问题
-
-操作规则：
-- 已有同类条目：出现次数 +1，补充本次案例（一行）
-- 新问题：追加到对应分类（Prompt质量 / Harness脚本 / 阶段设计 / Agent能力边界 / 技术栈）
-- 绝不删除已有条目
-- 每条格式：
-  ### [问题标题]
-  - 触发场景：Stage X，具体情境
-  - 建议改进：具体改动方向（改哪个 prompt / 哪个脚本）
-  - 出现次数：N 次
-""")
-```
-
----
-
 ## 验证失败时的 Retry 路径
 
 `validate-stage.sh` 失败会自动把阶段标记为 `failed`。重新调度 agent 修复前，先把状态重置为 `in_progress`：
@@ -722,8 +665,6 @@ bash "$SKILL_DIR/scripts/update-status.sh" start <stage_id> <project-name>
 # 4. 再次验证（通过自动 done，失败自动 fail，循环直到通过）
 bash "$SKILL_DIR/scripts/validate-stage.sh" <stage_id> <project-dir> <project-name>
 ```
-
-**放弃某个 Stage 时（不再 retry）：** 直接进入复盘，不必等到 Stage 10。
 
 ```bash
 bash "$SKILL_DIR/scripts/show-status.sh" <project-name>   # 随时查看各阶段状态
