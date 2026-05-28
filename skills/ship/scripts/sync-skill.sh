@@ -3,8 +3,8 @@ set -euo pipefail
 
 SKILL_NAME="${1:?Usage: sync-skill.sh <skill-name> [direction: project->global|global->project|both]}"
 DIRECTION="${2:-both}"
-PROJECT_SKILLS_DIR="${3:-/Users/hacxy/Projects/skills/skills}"
-GLOBAL_SKILLS_DIR="${4:-/Users/hacxy/.claude/skills}"
+PROJECT_SKILLS_DIR="${3:-$HOME/Projects/skills/skills}"
+GLOBAL_SKILLS_DIR="${4:-$HOME/.claude/skills}"
 
 log() { echo "[sync-skill] $*" >&2; }
 

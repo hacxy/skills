@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_DIR="${1:-/Users/hacxy/Projects/skills/skills}"
+PROJECT_DIR="${1:-$HOME/Projects/skills/skills}"
 SKILLS=(write-prd write-tdd scaffold-project write-tests dev code-review test deploy)
 
 log() { echo "[chain-audit] $*" >&2; }

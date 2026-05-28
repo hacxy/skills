@@ -37,7 +37,7 @@ server {
 
     # 生产服务器取消注释以启用 HTTPS：
     # listen 443 ssl;
-    # ssl_certificate /etc/nginx/ssl/hacxy.cn/fullchain.cer;
-    # ssl_certificate_key /etc/nginx/ssl/hacxy.cn/hacxy.cn.key;
+    # ssl_certificate /etc/nginx/ssl/<domain>/fullchain.cer;
+    # ssl_certificate_key /etc/nginx/ssl/<domain>/<domain>.key;
     # ssl_ciphers HIGH:!aNULL:!MD5;
 }

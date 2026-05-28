@@ -33,7 +33,7 @@ SSH_HOST=your-server.com      # 支持 ~/.ssh/config 别名
 SSH_PORT=22
 DEPLOY_KEY=~/.ssh/id_ed25519  # deploy 用户私钥
 
-BASE_DOMAIN=hacxy.cn          # 应用部署到 <app>.<BASE_DOMAIN>
+BASE_DOMAIN=yourdomain.com          # 应用部署到 <app>.<BASE_DOMAIN>
 ```
 
 首次运行 `deploy.sh` 自动生成此文件。脚本自动处理：域名、目录（/srv/projects）、端口（3000 起自动递增）。

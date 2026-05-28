@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_SKILLS_DIR="${1:-/Users/hacxy/Projects/skills/skills}"
-GLOBAL_SKILLS_DIR="${2:-/Users/hacxy/.claude/skills}"
+PROJECT_SKILLS_DIR="${1:-$HOME/Projects/skills/skills}"
+GLOBAL_SKILLS_DIR="${2:-$HOME/.claude/skills}"
 
 PIPELINE_SKILLS=(pipeline write-prd write-tdd scaffold-project dev code-review test deploy)
 

@@ -8,10 +8,10 @@
 |------|---|
 | 工具 | acme.sh |
 | CA | Let's Encrypt |
-| 证书类型 | 通配符（`*.hacxy.cn`） |
+| 证书类型 | 通配符（`*.yourdomain.com`） |
 | 密钥算法 | EC-384 |
-| 证书路径 | `/etc/nginx/ssl/hacxy.cn/fullchain.cer` |
-| 密钥路径 | `/etc/nginx/ssl/hacxy.cn/hacxy.cn.key` |
+| 证书路径 | `/etc/nginx/ssl/yourdomain.com/fullchain.cer` |
+| 密钥路径 | `/etc/nginx/ssl/yourdomain.com/yourdomain.com.key` |
 | DNS API | DNSPod（`dns_dp`）|
 | 自动续期 | crontab 每日 21:48 |
 
