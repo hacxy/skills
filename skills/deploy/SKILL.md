@@ -90,8 +90,13 @@ chmod 440 /etc/sudoers.d/deploy-base
 
 ## SSL 证书
 
-acme.sh + Let's Encrypt + DNSPod DNS API，详见 `references/ssl-setup.md`。  
-脚本自动检测证书，有则生成 HTTPS 配置，无则 HTTP。
+```bash
+bash "$SKILL_DIR/scripts/acme-init.sh"
+```
+
+自动检测 acme.sh 是否已安装：未安装则初始化（安装 acme.sh + 配置 DNSPod 凭证 + 签发通配符证书），已安装则直接签发证书（幂等）。  
+完整说明见 `references/ssl-setup.md`。  
+`deploy.sh` 部署时自动检测 `/etc/nginx/ssl/*/fullchain.cer`，有则 HTTPS，无则 HTTP。
 
 ---
 
