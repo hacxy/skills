@@ -134,20 +134,31 @@ WORKFLOW
 
 log "   ✓ workflow 已生成"
 
-# ── 3. 输出 GitHub Secrets 配置说明 ─────────────────────────────────────────
+# ── 3. 自动配置 GitHub Secrets ───────────────────────────────────────────────
+command -v gh >/dev/null 2>&1 || fail "需要安装 GitHub CLI：brew install gh"
+gh auth status >/dev/null 2>&1 || fail "请先登录：gh auth login"
+
+# 从 git remote 获取仓库名
+REPO=$(git -C "$PROJECT_DIR" remote get-url origin 2>/dev/null \
+    | sed 's|.*github.com[:/]\(.*\)\.git|\1|; s|.*github.com[:/]\(.*\)|\1|')
+[ -z "$REPO" ] && fail "无法从 git remote 获取 GitHub 仓库名"
+
+log "🔐 配置 GitHub Secrets → $REPO..."
+
+gh secret set DEPLOY_SSH_KEY --body "$(cat "$GH_KEY")" --repo "$REPO"
+log "   ✓ DEPLOY_SSH_KEY"
+
+gh secret set SSH_HOST --body "$SSH_HOST" --repo "$REPO"
+log "   ✓ SSH_HOST"
+
+gh secret set SSH_PORT --body "${SSH_PORT:-22}" --repo "$REPO"
+log "   ✓ SSH_PORT"
+
+gh secret set BASE_DOMAIN --body "$BASE_DOMAIN" --repo "$REPO"
+log "   ✓ BASE_DOMAIN"
+
 echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  GitHub Secrets 配置（Settings → Secrets → Actions）"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-echo "DEPLOY_SSH_KEY："
-cat "$GH_KEY"
-echo ""
-echo "SSH_HOST：$SSH_HOST"
-echo "SSH_PORT：${SSH_PORT:-22}"
-echo "BASE_DOMAIN：$BASE_DOMAIN"
-echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-log "完成！推送到 main 分支即可触发自动部署。"
-log "也可以在 GitHub Actions 页面手动触发（workflow_dispatch）。"
+log "✅ 完成！"
+log "   仓库：https://github.com/$REPO"
+log "   推送到 main 分支即可触发自动部署"
+log "   也可在 Actions 页面手动触发（workflow_dispatch）"

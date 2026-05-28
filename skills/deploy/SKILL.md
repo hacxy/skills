@@ -67,16 +67,9 @@ bash "$SKILL_DIR/scripts/setup-github-deploy.sh" <project-dir> [app-name]
 1. 生成 GitHub Actions 专用 SSH 密钥（`~/.config/ship/github-deploy.key`，所有项目共用）
 2. 将公钥添加到服务器 deploy 用户
 3. 在项目中生成 `.github/workflows/deploy.yml`
-4. 输出需要填入 GitHub Secrets 的内容
+4. 通过 `gh` CLI 自动写入 GitHub Secrets：`DEPLOY_SSH_KEY`、`SSH_HOST`、`SSH_PORT`、`BASE_DOMAIN`
 
-GitHub Secrets 需要配置（Settings → Secrets → Actions）：
-
-| Secret | 说明 |
-|--------|------|
-| `DEPLOY_SSH_KEY` | 脚本输出的私钥内容 |
-| `SSH_HOST` | 服务器地址 |
-| `SSH_PORT` | SSH 端口（默认 22）|
-| `BASE_DOMAIN` | 基础域名 |
+前提：已安装并登录 GitHub CLI（`brew install gh && gh auth login`）。
 
 配置完成后，push 到 main 分支即可自动部署，也支持在 GitHub Actions 页面手动触发。
 
