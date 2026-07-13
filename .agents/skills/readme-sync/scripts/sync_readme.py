@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Main script to sync README.md with skills directory.
+Main script to sync README.md and README.zh.md with skills directory.
 """
 
 import os
@@ -13,7 +13,7 @@ scripts_dir = Path(__file__).parent
 sys.path.insert(0, str(scripts_dir))
 
 from scan_skills import scan_skills
-from generate_readme import generate_readme
+from generate_readme import generate_readme, _generate_en_readme, _generate_zh_readme
 from update_readme import update_readme
 
 
@@ -22,7 +22,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description='Sync README.md with skills directory'
+        description='Sync README.md and README.zh.md with skills directory'
     )
     parser.add_argument(
         '--skills-dir',
@@ -43,6 +43,12 @@ def main():
         '--intro',
         default=None,
         help='Introduction paragraph for README'
+    )
+    parser.add_argument(
+        '--lang',
+        choices=['en', 'zh', 'both'],
+        default='both',
+        help='Language to generate (default: both)'
     )
     parser.add_argument(
         '--dry-run',
@@ -69,28 +75,41 @@ def main():
         print(json.dumps(skills, indent=2))
         return
     
-    # Generate or update README
+    # Generate or update README files
     readme_path = Path(args.readme)
+    zh_readme_path = readme_path.parent / 'README.zh.md'
     
-    if readme_path.exists():
-        # Update existing README
-        with open(readme_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+    # Process English README
+    if args.lang in ('en', 'both'):
+        if readme_path.exists():
+            updated_en = update_readme(str(readme_path), skills, 'en')
+        else:
+            updated_en = _generate_en_readme(skills, args.repo_name or '', args.intro or '')
         
-        updated = update_readme(str(readme_path), skills)
-    else:
-        # Generate new README
-        updated = generate_readme(skills, args.repo_name, args.intro)
+        if args.dry_run:
+            print('=== README.md ===')
+            print(updated_en)
+        else:
+            with open(readme_path, 'w', encoding='utf-8') as f:
+                f.write(updated_en)
+            print(f'Updated {readme_path}', file=sys.stderr)
     
-    # Output
-    if args.dry_run:
-        print(updated)
-    else:
-        with open(readme_path, 'w', encoding='utf-8') as f:
-            f.write(updated)
+    # Process Chinese README
+    if args.lang in ('zh', 'both'):
+        if zh_readme_path.exists():
+            updated_zh = update_readme(str(zh_readme_path), skills, 'zh')
+        else:
+            updated_zh = _generate_zh_readme(skills, args.repo_name or '', args.intro or '')
         
-        print(f'Updated {readme_path}', file=sys.stderr)
-        print(f'Found {len(skills)} skills', file=sys.stderr)
+        if args.dry_run:
+            print('\n=== README.zh.md ===')
+            print(updated_zh)
+        else:
+            with open(zh_readme_path, 'w', encoding='utf-8') as f:
+                f.write(updated_zh)
+            print(f'Updated {zh_readme_path}', file=sys.stderr)
+    
+    print(f'Found {len(skills)} skills', file=sys.stderr)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Update README.md with changes from skills directory.
+Update README.md and README.zh.md with changes from skills directory.
 """
 
 import os
@@ -9,15 +9,21 @@ import json
 from pathlib import Path
 
 
-def extract_existing_skills(readme_content: str) -> list:
+def extract_existing_skills(readme_content: str, lang: str = 'en') -> list:
     """Extract existing skills from README table."""
     skills = []
     
-    # Find skills table
-    table_match = re.search(
-        r'\|\s*Skill\s*\|\s*Description\s*\|\s*\n\|[-\s|]+\|\s*\n((?:.*\n)*)',
-        readme_content
-    )
+    # Find skills table based on language
+    if lang == 'zh':
+        table_match = re.search(
+            r'\|\s*技能\s*\|\s*描述\s*\|\s*\n\|[-\s|]+\|\s*\n((?:.*\n)*)',
+            readme_content
+        )
+    else:
+        table_match = re.search(
+            r'\|\s*Skill\s*\|\s*Description\s*\|\s*\n\|[-\s|]+\|\s*\n((?:.*\n)*)',
+            readme_content
+        )
     
     if not table_match:
         return skills
@@ -36,25 +42,33 @@ def extract_existing_skills(readme_content: str) -> list:
     return skills
 
 
-def update_readme(readme_path: str, skills: list) -> str:
+def update_readme(readme_path: str, skills: list, lang: str = 'en') -> str:
     """Update README.md with new skill data."""
     
     with open(readme_path, 'r', encoding='utf-8') as f:
         content = f.read()
     
-    # Find skills table
-    table_pattern = r'(\|\s*Skill\s*\|\s*Description\s*\|\s*\n\|[-\s|]+\|\s*\n)((?:.*\n)*)'
+    # Find skills table based on language
+    if lang == 'zh':
+        table_pattern = r'(\|\s*技能\s*\|\s*描述\s*\|\s*\n\|[-\s|]+\|\s*\n)((?:.*\n)*)'
+    else:
+        table_pattern = r'(\|\s*Skill\s*\|\s*Description\s*\|\s*\n\|[-\s|]+\|\s*\n)((?:.*\n)*)'
+    
     table_match = re.search(table_pattern, content)
     
     if not table_match:
         # No table found, append one
-        return append_skills_table(content, skills)
+        return append_skills_table(content, skills, lang)
     
     # Generate new table rows
     new_rows = []
     for skill in skills:
         name = skill['name']
-        desc = skill['description']
+        # Use appropriate description based on language
+        if lang == 'zh':
+            desc = skill.get('description_zh', skill.get('description', ''))
+        else:
+            desc = skill.get('description', '')
         path = skill['path']
         new_rows.append(f'| [{name}]({path}/) | {desc} |')
     
@@ -66,20 +80,32 @@ def update_readme(readme_path: str, skills: list) -> str:
     return updated_content
 
 
-def append_skills_table(content: str, skills: list) -> str:
+def append_skills_table(content: str, skills: list, lang: str = 'en') -> str:
     """Append skills table to README."""
     
-    table_lines = [
-        '',
-        '## Skills',
-        '',
-        '| Skill | Description |',
-        '|-------|-------------|',
-    ]
+    if lang == 'zh':
+        table_lines = [
+            '',
+            '## 可用技能',
+            '',
+            '| 技能 | 描述 |',
+            '|------|------|',
+        ]
+    else:
+        table_lines = [
+            '',
+            '## Skills',
+            '',
+            '| Skill | Description |',
+            '|-------|-------------|',
+        ]
     
     for skill in skills:
         name = skill['name']
-        desc = skill['description']
+        if lang == 'zh':
+            desc = skill.get('description_zh', skill.get('description', ''))
+        else:
+            desc = skill.get('description', '')
         path = skill['path']
         table_lines.append(f'| [{name}]({path}/) | {desc} |')
     
@@ -91,24 +117,29 @@ def append_skills_table(content: str, skills: list) -> str:
 def main():
     """Main entry point."""
     import sys
+    import argparse
     
-    readme_path = sys.argv[1] if len(sys.argv) > 1 else 'README.md'
-    skills_file = sys.argv[2] if len(sys.argv) > 2 else None
+    parser = argparse.ArgumentParser(description='Update README with skill metadata')
+    parser.add_argument('--readme', default='README.md', help='Path to README.md')
+    parser.add_argument('--lang', choices=['en', 'zh'], default='en', help='Language')
+    parser.add_argument('skills_file', nargs='?', help='JSON file with skills metadata')
+    
+    args = parser.parse_args()
     
     # Load skills
-    if skills_file and os.path.exists(skills_file):
-        with open(skills_file, 'r') as f:
+    if args.skills_file and os.path.exists(args.skills_file):
+        with open(args.skills_file, 'r') as f:
             skills = json.load(f)
     else:
         skills = json.load(sys.stdin)
     
     # Update README
-    if os.path.exists(readme_path):
-        updated = update_readme(readme_path, skills)
+    if os.path.exists(args.readme):
+        updated = update_readme(args.readme, skills, args.lang)
     else:
         # Create new README
         from generate_readme import generate_readme
-        updated = generate_readme(skills)
+        updated = generate_readme(skills, lang=args.lang)
     
     # Output
     print(updated)

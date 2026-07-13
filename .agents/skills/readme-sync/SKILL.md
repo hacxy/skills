@@ -189,6 +189,46 @@ Guidelines for contributing.
 [License information]
 ```
 
+### README.zh.md Structure
+
+Generate a Chinese version of README with the same structure:
+
+```markdown
+# 技能仓库
+
+AI 代理技能集合。
+
+## 可用技能
+
+| 技能 | 描述 |
+|------|------|
+| [skill-name](skills/skill-name/) | 中文描述 |
+
+## 安装
+
+```bash
+npx skills add <owner>/<repo>
+```
+
+## 使用
+
+使用说明。
+
+## 贡献
+
+贡献指南。
+
+## 许可证
+
+MIT
+```
+
+### Cross-Reference
+
+Both README files should link to each other:
+- README.md: `[中文](./README.zh.md)`
+- README.zh.md: `[English](./README.md)`
+
 ### Metadata Format
 
 Extract from SKILL.md frontmatter:
@@ -197,8 +237,11 @@ Extract from SKILL.md frontmatter:
 ---
 name: skill-name
 description: Short description for README
+description_zh: 中文描述（可选，如果没有则使用 description）
 ---
 ```
+
+If `description_zh` is not provided, use the English `description` for the Chinese README.
 
 ---
 
