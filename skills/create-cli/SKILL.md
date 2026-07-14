@@ -1,6 +1,7 @@
 ---
 name: create-cli
 description: "CLI UX/spec: args, flags, help, output, errors, config, dry-run."
+description_zh: "CLI 用户体验/规范：参数、标志、帮助、输出、错误、配置、试运行。"
 ---
 
 # Create CLI
