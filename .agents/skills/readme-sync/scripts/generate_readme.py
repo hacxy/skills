@@ -121,7 +121,7 @@ def _generate_zh_readme(skills: list, repo_name: str = '', intro: str = '') -> s
         for skill in skills:
             name = skill['name']
             # Use Chinese description if available, otherwise fall back to English
-            desc = skill.get('description_zh', skill.get('description', ''))
+            desc = skill.get('description_zh', '') or skill.get('description', '')
             path = skill['path']
             lines.append(f'| [{name}]({path}/) | {desc} |')
         
