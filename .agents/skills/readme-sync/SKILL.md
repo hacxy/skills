@@ -237,13 +237,12 @@ Extract from SKILL.md frontmatter:
 ---
 name: skill-name
 description: Short description for README
-description_zh: 中文描述（可选）
 ---
 ```
 
 ### Chinese Description Translation
 
-When generating `README.zh.md`, if `description_zh` is not provided in the SKILL.md frontmatter, translate the English `description` to Chinese. The translation should:
+When generating `README.zh.md`, translate the English `description` to Chinese. The translation should:
 
 1. Preserve technical terms (e.g., "CLI", "API", "JSON" remain in English)
 2. Be concise and natural in Chinese
@@ -254,8 +253,6 @@ Example translations:
 - "Grill the user relentlessly about a plan or design" → "对计划或设计进行深入质询和压力测试"
 - "Test-driven development workflow" → "测试驱动开发工作流"
 - "Create new skills with eval-driven development" → "通过评估驱动开发创建新技能"
-
-When running the sync, update `description_zh` in the SKILL.md frontmatter with the translated text so it persists for future README generations.
 
 ---
 

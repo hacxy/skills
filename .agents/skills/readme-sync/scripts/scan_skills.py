@@ -68,7 +68,6 @@ def scan_skills(skills_dir: str) -> list:
         
         # Get description from frontmatter or first paragraph
         description = frontmatter.get('description', '')
-        description_zh = frontmatter.get('description_zh', '')
         
         if not description:
             description = extract_first_paragraph(content)
@@ -77,15 +76,10 @@ def scan_skills(skills_dir: str) -> list:
         if len(description) > 100:
             description = description[:97] + '...'
         
-        # Truncate Chinese description if too long
-        if description_zh and len(description_zh) > 100:
-            description_zh = description_zh[:97] + '...'
-        
         skills.append({
             'name': frontmatter['name'],
             'directory': skill_dir.name,
             'description': description,
-            'description_zh': description_zh,
             'path': str(skill_dir.relative_to(skills_path.parent))
         })
     

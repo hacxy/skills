@@ -55,7 +55,7 @@ def _generate_en_readme(skills: list, repo_name: str = '', intro: str = '') -> s
         
         for skill in skills:
             name = skill['name']
-            desc = skill.get('description', skill.get('description_zh', ''))
+            desc = skill.get('description', '')
             path = skill['path']
             lines.append(f'| [{name}]({path}/) | {desc} |')
         
@@ -120,8 +120,8 @@ def _generate_zh_readme(skills: list, repo_name: str = '', intro: str = '') -> s
         
         for skill in skills:
             name = skill['name']
-            # Use Chinese description if available, otherwise fall back to English
-            desc = skill.get('description_zh', '') or skill.get('description', '')
+            # Translate English description to Chinese for README.zh.md
+            desc = skill.get('description', '')
             path = skill['path']
             lines.append(f'| [{name}]({path}/) | {desc} |')
         
