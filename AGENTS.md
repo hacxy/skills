@@ -1,6 +1,6 @@
 # Skills Repository
 
-This repo holds OpenCode skills. All skills live under `skills/`.
+This repo holds reusable skills for AI agents. All skills live under `skills/`.
 
 ## Structure
 
@@ -12,7 +12,7 @@ skills/
 ```
 
 - One directory per skill under `skills/`.
-- `SKILL.md` is the entry point. OpenCode loads it when the skill is triggered.
+- `SKILL.md` is the entry point. Agents load it when the skill is triggered.
 - Keep skill names lowercase, hyphen-separated (e.g. `commit`, `lark-doc`, `ship`).
 - Do not put skills outside `skills/`.
 
@@ -29,3 +29,7 @@ skills/
 - No root-level code files. Everything skill-related goes in `skills/<name>/`.
 - `LICENSE` (MIT) applies to the whole repo.
 - Commit messages follow Conventional Commits (e.g. `feat:`, `fix:`, `chore:`).
+
+## Sync READMEs
+
+When adding or removing a skill in `skills/`, update both `README.md` and `README.zh.md` to reflect the change.
