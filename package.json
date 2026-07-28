@@ -1,0 +1,11 @@
+{
+  "name": "@hacxy/skills",
+  "version": "0.0.1",
+  "description": "AI agent skills collection for pi",
+  "keywords": ["pi-package"],
+  "pi": {
+    "skills": ["./skills"]
+  },
+  "author": "hacxy",
+  "license": "MIT"
+}

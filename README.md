@@ -35,6 +35,23 @@ npx skills add hacxy/skills --skill kick-list
 npx skills add hacxy/skills --skill kick-new
 ```
 
+## Pi Package Usage
+
+This repository is also a pi package. You can install it as a pi extension:
+
+```bash
+# Install from local path
+pi install /path/to/skills
+
+# Install from npm (after publishing)
+pi install npm:@hacxy/skills
+
+# Install from git
+pi install git:github.com/hacxy/skills
+```
+
+After installation, all skills will be available in your pi environment.
+
 ## License
 
 MIT

@@ -35,6 +35,23 @@ npx skills add hacxy/skills --skill kick-list
 npx skills add hacxy/skills --skill kick-new
 ```
 
+## Pi 包使用
+
+此仓库也是一个 pi 包，可以作为 pi 扩展安装：
+
+```bash
+# 从本地路径安装
+pi install /path/to/skills
+
+# 从 npm 安装（发布后）
+pi install npm:@hacxy/skills
+
+# 从 git 安装
+pi install git:github.com/hacxy/skills
+```
+
+安装后，所有技能将在你的 pi 环境中可用。
+
 ## 许可证
 
 MIT
