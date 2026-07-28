@@ -123,7 +123,7 @@ function gitOperations(newVersion) {
 	const tag = `v${newVersion}`;
 
 	console.log("\n📦 Committing changes...");
-	exec('git add -A package.json');
+	exec("git add -A package.json");
 	exec(`git commit -m "chore(release): ${tag}"`);
 
 	console.log("\n🏷️  Creating tag...");
