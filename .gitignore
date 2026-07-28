@@ -5,3 +5,4 @@ yarn-error.log
 *.tgz
 package-lock.json
 yarn.lock
+.pi-subagents
