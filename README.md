@@ -8,13 +8,17 @@ A collection of AI agent skills.
 
 | Skill | Description |
 | ------- | ------------- |
-| [create-cli](skills/create-cli/) | CLI UX/spec: args, flags, help, output, errors, config, dry-run. |
-| [frontend-design](skills/frontend-design/) | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthetic direction, typography, and making choices that don't read as templated defaults. |
-| [kick-list](skills/kick-list/) | List all available project templates for scaffolding new applications. |
-| [kick-new](skills/kick-new/) | Create a new project when user wants to start, scaffold, or initialize a new application from a template. |
-| [grilling](skills/grilling/) | Grill the user relentlessly about a plan or design. Use when the user wants to stress-test a plan... |
-| [research](skills/research/) | Investigate a question against high-trust primary sources and capture the findings as a Markdown file. Use when the user wants a topic researched, docs or API facts gathered, or reading legwork delegated to a background agent. |
-| [tdd](skills/tdd/) | Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests. |
+| [`brainstorm`](skills/brainstorm/) | 头脑风暴与决策辅助。当用户纠结于某个问题、需要深入讨论、收集信息、分析利弊、做出决策时使用。基于真实调研、实事求是、提供依据、逐步引导。 |
+| [`create-agentsmd`](skills/create-agentsmd/) | Prompt for generating an AGENTS.md file for a repository. |
+| [`create-cli`](skills/create-cli/) | CLI UX/spec: args, flags, help, output, errors, config, dry-run. |
+| [`frontend-design`](skills/frontend-design/) | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthetic direction, typography, and making choices that don't read as templated defaults. |
+| [`git-commit`](skills/git-commit/) | Scan changes, draft conventional commit message, commit and push. Use when the user wants to commit staged or unstaged changes, or mentions git commit, push, or submit. |
+| [`grilling`](skills/grilling/) | Grill the user relentlessly about a plan or design. Use when the user wants to stress-test a plan... |
+| [`kick-list`](skills/kick-list/) | List all available project templates for scaffolding new applications. |
+| [`kick-new`](skills/kick-new/) | Create a new project when user wants to start, scaffold, or initialize a new application from a template. |
+| [`researcher`](skills/researcher/) | Investigate a question against high-trust primary sources and capture the findings as a Markdown file. Use when the user wants a topic researched, docs or API facts gathered, or reading legwork delegated to a background agent. |
+| [`tdd`](skills/tdd/) | Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests. |
+| [`tech-blog-writer`](skills/tech-blog-writer/) | 技术博客写作与更新。当用户需要撰写或更新中文技术博客文章、技术教程、开发笔记、源码分析、实践总结时使用。支持自动评审和迭代修改。 |
 
 ## Usage
 
