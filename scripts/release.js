@@ -31,11 +31,12 @@ const versionType = args.find((arg) => VERSION_TYPES.includes(arg));
 // Helper: execute command and return output
 function exec(cmd, options = {}) {
 	try {
-		return execSync(cmd, {
+		const result = execSync(cmd, {
 			encoding: "utf8",
 			stdio: options.silent ? "pipe" : "inherit",
 			...options,
-		}).trim();
+		});
+		return result ? result.trim() : "";
 	} catch (error) {
 		if (!options.silent) {
 			console.error(`\x1b[31mError executing: ${cmd}\x1b[0m`);
