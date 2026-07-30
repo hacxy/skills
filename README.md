@@ -1,61 +1,50 @@
-# Skills Repository
+# Skills
 
-[中文](./README.zh.md)
+> 中文友好的，且可复用的 AI agent 技能集合，提供专项能力。
 
-A collection of AI agent skills.
+## 技能列表
 
-## Skills
+| 技能                                           | 描述                                                                                     |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| [`brainstorm`](skills/brainstorm/)             | 头脑风暴与决策辅助。基于真实调研、逐步引导，适用于技术选型、方案对比等需要深入思考的场景 |
+| [`code-review`](skills/code-review/)           | 严谨的代码评审，聚焦意图、正确性与风险                                                   |
+| [`create-agentsmd`](skills/create-agentsmd/)   | 为仓库生成 AGENTS.md 文件                                                                |
+| [`create-cli`](skills/create-cli/)             | CLI 体验与规格设计：参数、帮助信息、错误处理、dry-run 等                                 |
+| [`frontend-design`](skills/frontend-design/)   | 前端视觉设计指导：美学风格、排版、非模板化的设计决策                                     |
+| [`git-commit`](skills/git-commit/)             | 扫描变更、拟定 conventional commit 信息、提交并推送                                      |
+| [`grilling`](skills/grilling/)                 | 对计划或设计进行压力测试，开发前验证方案                                                 |
+| [`researcher`](skills/researcher/)             | 针对可信一手资料研究问题，将结论记录为 Markdown                                          |
+| [`tech-blog-writer`](skills/tech-blog-writer/) | 中文技术博客写作与更新，支持自动评审和迭代修改                                           |
 
-| Skill | Description |
-| ------- | ------------- |
-| [`brainstorm`](skills/brainstorm/) | 头脑风暴与决策辅助。当用户纠结于某个问题、需要深入讨论、收集信息、分析利弊、做出决策时使用。基于真实调研、实事求是、提供依据、逐步引导。 |
-| [`create-agentsmd`](skills/create-agentsmd/) | Prompt for generating an AGENTS.md file for a repository. |
-| [`create-cli`](skills/create-cli/) | CLI UX/spec: args, flags, help, output, errors, config, dry-run. |
-| [`frontend-design`](skills/frontend-design/) | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthetic direction, typography, and making choices that don't read as templated defaults. |
-| [`git-commit`](skills/git-commit/) | Scan changes, draft conventional commit message, commit and push. Use when the user wants to commit staged or unstaged changes, or mentions git commit, push, or submit. |
-| [`grilling`](skills/grilling/) | Grill the user relentlessly about a plan or design. Use when the user wants to stress-test a plan... |
-| [`kick-list`](skills/kick-list/) | List all available project templates for scaffolding new applications. |
-| [`kick-new`](skills/kick-new/) | Create a new project when user wants to start, scaffold, or initialize a new application from a template. |
-| [`researcher`](skills/researcher/) | Investigate a question against high-trust primary sources and capture the findings as a Markdown file. Use when the user wants a topic researched, docs or API facts gathered, or reading legwork delegated to a background agent. |
-| [`tdd`](skills/tdd/) | Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests. |
-| [`tech-blog-writer`](skills/tech-blog-writer/) | 技术博客写作与更新。当用户需要撰写或更新中文技术博客文章、技术教程、开发笔记、源码分析、实践总结时使用。支持自动评审和迭代修改。 |
+## 安装
 
-## Usage
+### skills.sh
 
 ```bash
-# Install a skill
-npx skills add hacxy/skills --skill <skill-name>
-
-# List available skills
-npx skills list
-
-# Examples
-npx skills add hacxy/skills --skill grilling
-npx skills add hacxy/skills --skill tdd
-npx skills add hacxy/skills --skill research
-npx skills add hacxy/skills --skill create-cli
-npx skills add hacxy/skills --skill frontend-design
-npx skills add hacxy/skills --skill kick-list
-npx skills add hacxy/skills --skill kick-new
+npx skills add hacxy/skills
 ```
 
-## Pi Package Usage
-
-This repository is also a pi package. You can install it as a pi extension:
+### pi 扩展
 
 ```bash
-# Install from local path
-pi install /path/to/skills
-
-# Install from npm (after publishing)
+# 从 npm
 pi install npm:@hacxy/skills
 
-# Install from git
+# 从 git
 pi install git:github.com/hacxy/skills
 ```
 
-After installation, all skills will be available in your pi environment.
+安装后所有技能自动可用。触发匹配时 agent 会加载对应的 `SKILL.md`。
 
-## License
+## 项目结构
 
-MIT
+```
+skills/
+  <skill-name>/
+    SKILL.md          # 必需 — 技能定义与指令
+    (其他文件)         # 可选 — 脚本、模板、配置
+```
+
+## 许可证
+
+[MIT](LICENSE)

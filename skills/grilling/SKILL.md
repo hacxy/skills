@@ -1,12 +1,12 @@
 ---
 name: grilling
-description: Grill the user relentlessly about a plan or design. Use when the user wants to stress-test a plan before building, or uses any 'grill' trigger phrases.
+description: "对用户的计划或设计进行压力测试。当用户想要在开发前验证方案、或使用任何「拷问」相关表述时触发。"
 ---
 
-Interview me relentlessly about every aspect of this plan until we reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one. For each question, provide your recommended answer.
+对这个计划的每个方面进行 relentless 的拷问，直到我们达成共识。沿着设计树的每个分支走下去，逐个解决决策之间的依赖关系。每个问题，附上你的推荐答案。
 
-Ask the questions one at a time, waiting for feedback on each question before continuing. Asking multiple questions at once is bewildering.
+一次只问一个问题，等反馈后再继续。一次问多个问题会让人不知所措。
 
-If a *fact* can be found by exploring the codebase, look it up rather than asking me. The *decisions*, though, are mine — put each one to me and wait for my answer.
+如果一个*事实*可以通过探索代码库找到，去查而不是问我。但*决策*是我的 — 把每个决策交给我，等我的答案。
 
-Do not enact the plan until I confirm we have reached a shared understanding.
+在我确认我们达成共识之前，不要执行计划。

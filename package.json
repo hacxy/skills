@@ -4,7 +4,8 @@
   "description": "AI agent skills collection for pi",
   "keywords": [
     "pi-package",
-    "skills"
+    "skills",
+    "AI Agent"
   ],
   "pi": {
     "skills": [
