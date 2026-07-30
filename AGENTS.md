@@ -30,6 +30,6 @@ skills/
 - `LICENSE` (MIT) applies to the whole repo.
 - Commit messages follow Conventional Commits (e.g. `feat:`, `fix:`, `chore:`).
 
-## Sync READMEs
+## Sync README
 
-When adding or removing a skill in `skills/`, update both `README.md` and `README.zh.md` to reflect the change.
+When adding or removing a skill in `skills/`, update `README.md` to reflect the change.
